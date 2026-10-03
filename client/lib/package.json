@@ -3,6 +3,7 @@
     "version": "1.0.180",
     "description": "",
     "main": "dist/index.js",
+    "author": "CyrixJD115 (https://github.com/CyrixJD115)",
     "directories": {
         "lib": "lib"
     },
@@ -23,7 +24,6 @@
     "keywords": [
         "voice conversion"
     ],
-    "author": "wataru.okada@flect.co.jp",
     "license": "ISC",
     "devDependencies": {
         "@types/audioworklet": "^0.0.52",

@@ -15,6 +15,13 @@ torch==2.9.1+cu128
 torchaudio==2.9.1+cu128
 # cuDNN 9 for onnxruntime-gpu; torch bundles it on Linux, but make it explicit
 # so the CUDA execution provider never fails to find libcudnn (issue #197).
+# Cannot demand a newer version here: torch 2.9.1+cu128 pins
+# nvidia-cudnn-cu12==9.10.2.21 exactly, so this file must stay compatible with
+# it. onnxruntime 1.26 executes convolutions through the cuDNN frontend, whose
+# heuristic finds no fp16 engine for HuBERT's grouped position convolution at
+# realtime chunk sizes on cuDNN <= 9.10 (HEURISTIC_QUERY_FAILED), so start.py
+# upgrades this package to >= 9.27 right after installing the requirements
+# (torch itself runs fine on cuDNN 9.27).
 nvidia-cudnn-cu12~=9.0; sys_platform=='linux'
 faiss-cpu; sys_platform!='linux'
 faiss-gpu; sys_platform=='linux'

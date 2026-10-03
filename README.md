@@ -1,4 +1,6 @@
-# Voice Changer
+# Vocalis AI
+
+**AI-powered realtime voice changer mod** — low-latency, real-time voice conversion for streaming, gaming and content creation.
 
 ## Table of Contents
 
@@ -41,13 +43,13 @@
 
 ## Overview
 
-This is a fork of [w-okada voice changer](https://github.com/w-okada/voice-changer) that performs real-time voice conversion
+Vocalis AI is an AI-powered realtime voice changer based on [w-okada voice changer](https://github.com/w-okada/voice-changer) and its [deiteris fork](https://github.com/deiteris/voice-changer) that performs real-time voice conversion
 using various voice conversion algorithms.
 
 > [!IMPORTANT]
 > This version works only with Retrieval-based Voice Conversion (RVC).
 
-The fork aims to improve the overall performance for any backend, and at the same time introducing new features and improving
+Vocalis AI aims to improve the overall performance for any backend, and at the same time introducing new features and improving
 user experience.
 
 The following videos demonstrate how the voice changer works and performs with AMD graphics cards (including integrated GPU!):
@@ -137,7 +139,7 @@ A dedicated graphics card Nvidia GeForce RTX 20 Series or later, or AMD Radeon R
 
 1. [If not installed] Download and install [VAC Lite by Muzychenko](https://software.muzychenko.net/freeware/vac470lite.zip).
 
-1. Navigate to the [releases section](https://github.com/deiteris/voice-changer/releases).
+1. Navigate to the [releases section](https://github.com/CyrixJD115/vocalis-ai/releases).
 
 #### Check your hardware
 
@@ -235,7 +237,7 @@ Once the download is finished, the voice changer will open the user interface us
 
 ### Running on Colab/Kaggle
 
-Refer to corresponding [Colab](https://github.com/deiteris/voice-changer/blob/master-custom/Colab_RealtimeVoiceChanger.ipynb) or [Kaggle](https://github.com/deiteris/voice-changer/blob/master-custom/Kaggle_RealtimeVoiceChanger.ipynb) notebooks in this repository and follow their instructions.
+Refer to corresponding [Colab](https://github.com/CyrixJD115/vocalis-ai/blob/HEAD/Colab_RealtimeVoiceChanger.ipynb) or [Kaggle](https://github.com/CyrixJD115/vocalis-ai/blob/HEAD/Kaggle_RealtimeVoiceChanger.ipynb) notebooks in this repository and follow their instructions.
 
 ## Troubleshooting
 
@@ -479,6 +481,39 @@ curl -X DELETE http://127.0.0.1:18888/api/models/4
 ```
 
 Other useful endpoints: `POST /update_settings` (form fields `key`/`val`, e.g. `key=modelSlotIndex&val=4`, `key=tran&val=12`) and `POST /test` (msgpack-encoded `[timestamp, int16 PCM]` body — returns converted audio; used for offline conversion).
+
+### Web UI development
+
+The web UI lives in `client/demo` and is built with Svelte 5, Vite and Tailwind CSS v4. It reuses the shared TypeScript client (`client/lib`, aliased as `@vc-lib/*`); the audio-worklet processor is bundled with esbuild at build time, so the lib's webpack toolchain is not needed.
+
+The launcher can drive the whole stack by itself:
+
+```
+python start.py                  # backend on :18888, serves the pre-built UI from client/demo/dist
+python start.py --dev-ui         # all-in-one: backend + Svelte/Vite dev server on :5173 with hot reload,
+                                 # browser opens the dev server; API/Socket.IO are proxied to the backend
+                                 # (--ui-port to change the Vite port, requires Node.js)
+python start.py --build-ui       # (re)build client/demo/dist before starting (needs Node.js)
+```
+
+If `client/demo/dist` is missing and Node.js is installed, `start.py` builds the UI automatically; with `--dev-ui` the Vite server starts instead and installs the UI dependencies on first run. Both modes tear the dev server down together with the backend on Ctrl+C.
+
+For manual UI work:
+
+```
+cd client/demo
+npm install
+npm run dev        # dev server on :5173, API/Socket.IO proxied to http://127.0.0.1:18888 (override with VC_SERVER_URL)
+npm run build      # production build into client/demo/dist (the directory served by the python server)
+npm run check      # svelte-check typechecking
+```
+
+To work on the UI without the python backend, use the mock server (canned `/info`, `/version`, `/edition`, `/update_settings` responses plus the built assets):
+
+```
+npm run mock       # serve dist/ with mock data on :8899
+npm run shots      # headless-chromium screenshot suite against the mock server (scripts/screenshot.mjs)
+```
 
 ### Building a package
 

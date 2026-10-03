@@ -261,7 +261,7 @@ export class ServerRestClient {
                 Accept: "application/octet-stream",
                 "Content-Type": "application/octet-stream",
             },
-            body,
+            body: body as BodyInit,
         });
         const data = new Uint8Array(await res.arrayBuffer());
 

@@ -1,0 +1,334 @@
+@import url("https://fonts.googleapis.com/css2?family=Chicle&family=Poppins:ital,wght@0,200;0,300;0,400;0,500;0,600;1,400&family=Yusei+Magic&display=swap");
+@import "tailwindcss";
+
+@theme {
+    --font-sans: "Poppins", "Yusei Magic", ui-sans-serif, system-ui, sans-serif;
+
+    --color-ink-950: #0a0d13;
+    --color-ink-900: #10141d;
+    --color-ink-850: #141926;
+    --color-ink-800: #1a2130;
+    --color-ink-700: #242d40;
+    --color-ink-600: #33405a;
+
+    --color-accent-300: #5eead4;
+    --color-accent-400: #2dd4bf;
+    --color-accent-500: #14b8a6;
+    --color-accent-900: #134e4a;
+
+    --color-start-500: #10b981;
+    --color-start-600: #059669;
+    --color-stop-500: #f43f5e;
+    --color-stop-600: #e11d48;
+}
+
+@layer base {
+    html,
+    body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: var(--font-sans);
+        color: #d7dce5;
+        background-color: var(--color-ink-950);
+        background-image:
+            radial-gradient(1200px 500px at 15% -10%, rgba(45, 212, 191, 0.07), transparent 60%),
+            radial-gradient(1000px 600px at 90% 0%, rgba(64, 119, 187, 0.1), transparent 55%),
+            linear-gradient(180deg, #0d1119 0%, #0a0d13 100%);
+        background-attachment: fixed;
+        overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.03);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #2c3549;
+        border-radius: 6px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #3a4661;
+    }
+
+    select {
+        color-scheme: dark;
+    }
+
+    a {
+        color: #fff;
+    }
+}
+
+@layer components {
+    .card {
+        border-radius: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #8fa0b8;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        border-radius: 0.6rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        padding: 0.375rem 0.8rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: #d7dce5;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.05s ease;
+        user-select: none;
+        white-space: nowrap;
+    }
+    .btn:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.22);
+        color: #fff;
+    }
+    .btn:active:not(:disabled) {
+        transform: translateY(1px);
+    }
+    .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .btn-accent {
+        background: rgba(45, 212, 191, 0.12);
+        border-color: rgba(45, 212, 191, 0.35);
+        color: var(--color-accent-300);
+    }
+    .btn-accent:hover:not(:disabled) {
+        background: rgba(45, 212, 191, 0.2);
+        border-color: rgba(45, 212, 191, 0.55);
+        color: #99f6e4;
+    }
+
+    .btn-start {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.45);
+        color: #6ee7b7;
+    }
+    .btn-start:hover:not(:disabled) {
+        background: rgba(16, 185, 129, 0.28);
+        border-color: rgba(16, 185, 129, 0.7);
+        color: #a7f3d0;
+    }
+    .btn-start-active {
+        background: rgba(16, 185, 129, 0.35);
+        border-color: rgba(16, 185, 129, 0.9);
+        color: #d1fae5;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-stop {
+        background: rgba(244, 63, 94, 0.12);
+        border-color: rgba(244, 63, 94, 0.4);
+        color: #fda4af;
+    }
+    .btn-stop:hover:not(:disabled) {
+        background: rgba(244, 63, 94, 0.25);
+        border-color: rgba(244, 63, 94, 0.65);
+        color: #fecdd3;
+    }
+    .btn-stop-active {
+        background: rgba(244, 63, 94, 0.3);
+        border-color: rgba(244, 63, 94, 0.9);
+        color: #ffe4e6;
+        box-shadow: 0 0 12px rgba(244, 63, 94, 0.35);
+    }
+
+    .field {
+        border-radius: 0.55rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(10, 13, 19, 0.75);
+        padding: 0.3rem 0.55rem;
+        font-size: 0.82rem;
+        color: #e2e8f0;
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field:focus {
+        border-color: rgba(45, 212, 191, 0.6);
+        box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.15);
+    }
+    .field:disabled {
+        opacity: 0.4;
+    }
+
+    .control-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #94a3b8;
+        letter-spacing: 0.02em;
+    }
+
+    .chip {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.05);
+        padding: 0.05rem 0.55rem;
+        font-size: 0.68rem;
+        color: #9fb0c8;
+    }
+}
+
+/* Range sliders */
+input[type="range"].vc-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--color-accent-500) var(--vc-fill, 50%), rgba(255, 255, 255, 0.12) var(--vc-fill, 50%));
+    outline: none;
+    cursor: pointer;
+}
+input[type="range"].vc-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #e6fffa;
+    border: 2px solid var(--color-accent-400);
+    box-shadow: 0 0 6px rgba(45, 212, 191, 0.5);
+    transition: transform 0.1s ease;
+}
+input[type="range"].vc-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+}
+input[type="range"].vc-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #e6fffa;
+    border: 2px solid var(--color-accent-400);
+}
+input[type="range"].vc-slider:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+input[type="checkbox"].vc-check {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(10, 13, 19, 0.75);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+}
+input[type="checkbox"].vc-check:checked {
+    background: var(--color-accent-500);
+    border-color: var(--color-accent-400);
+}
+input[type="checkbox"].vc-check:checked::after {
+    content: "";
+    position: absolute;
+    left: 4.5px;
+    top: 1.5px;
+    width: 5px;
+    height: 9px;
+    border: solid #05211d;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+input[type="checkbox"].vc-check:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+input[type="radio"].vc-radio {
+    accent-color: var(--color-accent-400);
+    cursor: pointer;
+}
+input[type="radio"].vc-radio:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Floating tooltip (single shared element, see lib/tooltip.ts) */
+.vc-tooltip {
+    position: fixed;
+    z-index: 9999;
+    max-width: 250px;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(16, 20, 29, 0.97);
+    color: #e2e8f0;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+.vc-tooltip-show {
+    opacity: 1;
+}
+
+/* Blinking passthrough button */
+@keyframes vc-blink {
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 2px rgba(250, 204, 21, 0.15);
+    }
+}
+.vc-blink {
+    animation: vc-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes vc-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+.vc-dialog-frame {
+    animation: vc-fade-in 0.15s ease-out;
+}
+
+@keyframes vc-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+.vc-spin {
+    animation: vc-spin 1s linear infinite;
+}

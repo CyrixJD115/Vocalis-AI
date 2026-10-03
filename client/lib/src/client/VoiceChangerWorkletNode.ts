@@ -208,7 +208,7 @@ export class VoiceChangerWorkletNode extends AudioWorkletNode {
         return;
       }
 
-      this.sendBuffer(this.requestChunks.buffer);
+      this.sendBuffer(this.requestChunks.buffer as ArrayBuffer);
       this.chunkCounter = 0;
 
       this.listener.notifySendBufferingTime(Date.now() - this.bufferStart);

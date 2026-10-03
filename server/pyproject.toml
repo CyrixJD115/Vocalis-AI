@@ -1,7 +1,8 @@
 [project]
-name = "voice-changer"
+name = "vocalis-ai"
 version = "1.0.0"
-description = "Realtime voice changer (RVC). Fork of w-okada/voice-changer."
+description = "Vocalis AI — AI-powered realtime voice changer (RVC). Based on w-okada/voice-changer."
+authors = [{ name = "CyrixJD115" }]
 requires-python = ">=3.10,<3.13"
 dependencies = [
     # Keep in sync with requirements-common.txt
@@ -34,7 +35,7 @@ cuda = [
     "torch==2.9.1; sys_platform == 'darwin'",
     "torchaudio==2.9.1+cu128; sys_platform != 'darwin'",
     "torchaudio==2.9.1; sys_platform == 'darwin'",
-    "nvidia-cudnn-cu12~=9.0; sys_platform=='linux'",   # issue #197
+    "nvidia-cudnn-cu12~=9.27.0; sys_platform=='linux'",   # issue #197; cuDNN <= 9.10 breaks ORT 1.26 fp16 convs (HEURISTIC_QUERY_FAILED)
     "faiss-cpu; sys_platform!='linux'",
     "faiss-gpu; sys_platform=='linux' and python_version<'3.11'",
     "faiss-cpu; sys_platform=='linux' and python_version>='3.11'",
@@ -100,6 +101,14 @@ conflicts = [
     [{ extra = "dml" }, { extra = "rocm" }],
     [{ extra = "cpu" }, { extra = "rocm" }],
 ]
+
+# torch 2.9.1+cu128 pins nvidia-cudnn-cu12==9.10.2.21 exactly, but onnxruntime
+# 1.26 executes convolutions through the cuDNN frontend, whose heuristic finds
+# no fp16 engine for HuBERT's grouped position convolution at realtime chunk
+# sizes on cuDNN <= 9.10 (HEURISTIC_QUERY_FAILED); >= 9.27 has engines that
+# cover it (9.10 and 9.27 both runtime-verified on an RTX 3050). The override
+# beats torch's pin; torch itself runs fine on cuDNN 9.27.
+override-dependencies = ["nvidia-cudnn-cu12~=9.27.0; sys_platform=='linux'"]
 
 [[tool.uv.index]]
 name = "pytorch-cu128"

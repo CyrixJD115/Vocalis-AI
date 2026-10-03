@@ -63,7 +63,7 @@ def check_port(port) -> int:
             sock.bind(("127.0.0.1", port))
     except OSError:
         logger.error(
-            f"Port {port} is already in use. Is another voice changer instance still running?"
+            f"Port {port} is already in use. Is another Vocalis AI instance still running?"
             " Stop it first, or choose a different port (PORT=... environment variable or start.py --port)."
         )
         sys.exit(1)
@@ -77,7 +77,7 @@ def wait_for_server(proto: str, launch_browser: bool):
             break
     banner = '=' * 62
     logger.info(banner)
-    logger.info(f" Voice changer is ready: {proto}://{settings.host}:{settings.port}/")
+    logger.info(f" Vocalis AI is ready: {proto}://{settings.host}:{settings.port}/")
     logger.info(banner)
     if launch_browser:
         open_new_tab(f'{proto}://127.0.0.1:{settings.port}')
@@ -105,7 +105,7 @@ async def main(args):
     logger.debug(args)
 
     logger.info(f"Python: {sys.version}")
-    logger.info(f"Voice changer version: {get_version()} {get_edition()}")
+    logger.info(f"Vocalis AI version: {get_version()} {get_edition()}")
     # ダウンロード(Weight)
 
     await downloadWeight(settings)

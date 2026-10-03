@@ -6,7 +6,8 @@ dummy
 node_modules
 __pycache__
 build
-dist
+# root-level pyinstaller output only; client/demo/dist (the served web UI) is tracked
+/dist
 
 server/upload_dir/
 server/MMVC_Client_v13/
