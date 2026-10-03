@@ -13,7 +13,9 @@ class ServerSettings(BaseSettings):
     # hubert_base: str = 'pretrain/hubert_base.pt'
     # hubert_base_jp: str = 'pretrain/rinna_hubert_base_jp.pt'
     # hubert_soft: str = 'pretrain/hubert/hubert-soft-0d54a1f4.pt'
-    sample_mode: RVCSampleMode = ''
+    # 'production' makes sample models available in the DL Sample dialog.
+    # Set SAMPLE_MODE='' to disable them.
+    sample_mode: RVCSampleMode = 'production'
     crepe_full: str = 'pretrain/crepe_full.pth'
     crepe_tiny: str = 'pretrain/crepe_tiny.pth'
     crepe_onnx_full: str = 'pretrain/crepe_onnx_full.onnx'

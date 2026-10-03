@@ -88,10 +88,10 @@ Minimum VRAM required: 2GB (in FP32 mode), ~1GB (in FP16 mode, if supported).
 Minimum requirement:
 
 * An integrated graphics card: AMD Radeon Vega 7 (with AMD Ryzen 5 5600G) or later.
-* A dedicated graphics card: Nvidia GeForce GTX 900 Series or later, or AMD Radeon RX 400 series or later, or Intel Arc A300 series or later.
+* A dedicated graphics card: Nvidia GeForce GTX 16 Series or RTX 20 Series or later, or AMD Radeon RX 400 series or later, or Intel Arc A300 series or later.
 
 > [!NOTE]
-> It is also possible to use Nvidia GeForce GTX 700 series GPUs. However, they can be used only with DirectML version.
+> Nvidia GTX 900/1000 series and older GPUs are supported only by the DirectML version.
 
 > [!WARNING]
 > The voice changer does not perform well with integrated Intel GPUs. This is a known issue that may be addressed in the future. You may proceed at your own risk and report issues or successful usage.
@@ -162,7 +162,10 @@ A dedicated graphics card Nvidia GeForce RTX 20 Series or later, or AMD Radeon R
 
 #### For Nvidia users
 
-1. Make sure your Nvidia driver version is `528.33` or later. [Click here](https://www.nvidia.com/en-gb/drivers/drivers-faq) to learn how to check your driver version.
+1. Make sure your Nvidia driver version is `570.26` or later (required by the CUDA 12.8 build). [Click here](https://www.nvidia.com/en-gb/drivers/drivers-faq) to learn how to check your driver version.
+
+   > [!NOTE]
+   > The Nvidia build covers GTX 16 / RTX 20 series and later, including RTX 50 (Blackwell). Owners of GTX 900/1000 series GPUs should use the DirectML (dml) build instead.
 
 1. Download the `voice-changer-windows-amd64-cuda.zip.001` and `voice-changer-windows-amd64-cuda.zip.002` ZIP files and place them in the same folder.
 
@@ -301,7 +304,7 @@ you encounter during usage.
 
 ### Prerequisites
 
-1. [If not installed] Download and install [Python 3.10](https://www.python.org/downloads/release/python-3108/).
+1. [If not installed] Download and install [Python 3.10](https://www.python.org/downloads/release/python-3108/). Any version from 3.10 to 3.12 works; 3.10 is required for the `rocm` backend and recommended overall.
 
 1. [If not installed] Download and install git.
 
@@ -318,7 +321,55 @@ you encounter during usage.
 
 1. Navigate to the `server` folder.
 
-### Setting up the environment
+### Quick start with start.py (recommended)
+
+The launcher creates a virtual environment (`.venv`), installs the dependencies for the selected backend — using [uv](https://docs.astral.sh/uv/) when available for a much faster setup — and starts the server:
+
+```
+python start.py
+```
+
+The compute backend is auto-detected (Nvidia GPU -> `cuda`, other Windows GPUs -> `dml`, macOS -> `cpu`, AMD GPU on Linux -> `rocm`). Useful flags:
+
+| Flag | Description |
+|------|-------------|
+| `--backend cuda\|dml\|rocm\|cpu` | Force a specific backend instead of auto-detecting. |
+| `--host 0.0.0.0` | Allow connections from other devices on your network (self-signed HTTPS is enabled automatically). |
+| `--port 18888` | Change the listening port. |
+| `--no-browser` | Do not open the UI in the browser automatically. |
+| `--skip-deps` | Skip the dependency check (fast restart). |
+| `--reinstall` | Delete `.venv` and reinstall from scratch. |
+| `--no-start` | Only set up the environment, do not start the server. |
+| `-- <main.py args>` | Forward flags to the server, e.g. `-- --log-level info`. |
+
+### Setting up the environment manually
+
+If you prefer to manage the environment yourself, use one of the following methods.
+
+#### With uv
+
+The project ships a `pyproject.toml` with one extra per backend (`cuda`, `dml`, `rocm`, `cpu` — install exactly one):
+
+```
+uv sync --extra cuda
+uv run python main.py
+```
+
+> [!WARNING]
+> Prefer `python start.py` for day-to-day use. A plain `uv run` re-syncs the environment to the base dependencies before executing and can replace backend-specific packages (for example, swapping CUDA torch for the CPU build). If you use `uv run`, pass `--no-sync` (e.g. `uv run --no-sync python start.py`) or select the extra explicitly (`uv run --extra cuda python main.py`).
+
+> [!NOTE]
+> The `rocm` extra does not include `onnxruntime-rocm`: AMD ships it as a direct wheel URL which uv's lockfile cannot resolve across Python versions. Use `start.py` or the requirements file below, which handle it correctly.
+
+Alternatively, install straight from the requirements files (the single source of truth, and the only path that covers every backend):
+
+```
+uv venv
+uv pip install -r requirements-common.txt -r requirements-cuda.txt
+uv run main.py
+```
+
+#### With plain venv + pip
 
 1. [If not set up] Set up virtual environment with the following command:
 
@@ -375,6 +426,59 @@ python ./main.py
 ```
 
 This will run the server with default settings. Note that it will not open the web browser by default, copy the address from command line.
+
+The server behavior can be configured with environment variables (or a `.env` file next to `main.py`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HOST` | `127.0.0.1` | Bind address. Set to `0.0.0.0` to allow connections from other devices on your network. |
+| `PORT` | `18888` | Listening port. |
+| `SAMPLE_MODE` | `production` | Source of sample models for the **DL Sample** dialog. Set to empty (`''`) to disable. |
+| `MODEL_DIR` | `model_dir` | Directory where model slots are stored. |
+
+For example, to make the voice changer accessible on the local network:
+
+```
+HOST=0.0.0.0 python ./main.py --https true
+```
+
+> [!WARNING]
+> When exposing the server to a network, keep `--https true` so that browsers allow microphone access on remote devices.
+
+### Model management API
+
+The server exposes a small REST API for managing RVC models programmatically (the web UI uses its own endpoints; these are the script-friendly ones):
+
+| Method & path | Description |
+|---------------|-------------|
+| `GET /api/models` | List installed models and the currently selected slot. |
+| `POST /api/models` | Upload and add a model. Accepts a `.zip` archive or loose files: one `.pth`/`.onnx`/`.safetensors` model (required), an optional `.index` feature file, and an optional icon image. |
+| `DELETE /api/models/{slot}` | Remove a model (deselects it first if active). |
+
+`POST /api/models` parameters (multipart form):
+
+| Field | Description |
+|-------|-------------|
+| `file` | One or more files. A `.zip` is unpacked server-side and classified automatically. |
+| `slot` | Target slot number. Omit or pass `-1` to use the first free slot. |
+| `name` | Optional display name (defaults to the model file name). |
+| `activate` | `true` to select the model immediately (it is warmed up in the background, so conversion starts without delay). |
+
+Examples:
+
+```bash
+# Add a model from a zip into the first free slot and start using it
+curl -X POST http://127.0.0.1:18888/api/models \
+    -F "file=@MyModelRVC.zip" -F "name=MyModel" -F "activate=true"
+
+# List models
+curl http://127.0.0.1:18888/api/models
+
+# Remove the model in slot 4
+curl -X DELETE http://127.0.0.1:18888/api/models/4
+```
+
+Other useful endpoints: `POST /update_settings` (form fields `key`/`val`, e.g. `key=modelSlotIndex&val=4`, `key=tran&val=12`) and `POST /test` (msgpack-encoded `[timestamp, int16 PCM]` body — returns converted audio; used for offline conversion).
 
 ### Building a package
 

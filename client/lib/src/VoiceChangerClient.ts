@@ -328,10 +328,15 @@ export class VoiceChangerClient {
         this.vcOutNode.configure(setting);
     };
     startOutputRecording = () => {
+        // Arm both nodes: depending on the audio setup state, converted audio is
+        // delivered either to the output node or back to the input node (issue #208).
+        this.vcInNode.startOutputRecording();
         this.vcOutNode.startOutputRecording();
     };
     stopOutputRecording = () => {
-        return this.vcOutNode.stopOutputRecording();
+        const inputRecording = this.vcInNode.stopOutputRecording();
+        const outputRecording = this.vcOutNode.stopOutputRecording();
+        return outputRecording.length > 0 ? outputRecording : inputRecording;
     };
     trancateBuffer = () => {
         this.vcOutNode.trancateBuffer();

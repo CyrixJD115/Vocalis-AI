@@ -64,6 +64,9 @@ export const HeaderArea = (props: HeaderAreaProps) => {
 
     const headerArea = useMemo(() => {
         const onClearSettingClicked = async () => {
+            if (!window.confirm("This will remove all settings and reload the page. Continue?")) {
+                return;
+            }
             await clearSetting();
             await removeItem(INDEXEDDB_KEY_AUDIO_OUTPUT);
             await removeDB();

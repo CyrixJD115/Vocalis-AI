@@ -14,6 +14,18 @@ logger = logging.getLogger(__name__)
 
 lock = Lock()
 
+
+def _content_length(res) -> int | None:
+    # Chunked responses (common for HuggingFace CDN) have no content-length.
+    value = res.headers.get("content-length")
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
 if os.path.exists(ASSETS_FILE):
     with open(ASSETS_FILE, encoding='utf-8') as f:
         files = json.load(f)
@@ -44,21 +56,21 @@ async def download(params: dict):
         # If hash was provided with the file - verify against provided hash
         if expected_hash is not None:
             if hash == expected_hash:
-                logger.info(f'Verified {saveTo}')
+                logger.debug(f'Verified {saveTo}')
                 return
         # If hash was not provided - verify against local cache
         elif saveTo in files:
             fhash = files[saveTo]
             if hash == fhash:
-                logger.info(f'Verified {saveTo}')
+                logger.debug(f'Verified {saveTo}')
                 return
     else:
         hash = None
 
     res = await s.head(url, allow_redirects=True)
     res.raise_for_status()
-    content_length = int(res.headers.get("content-length"))
-    if offset is not None and offset == content_length:
+    content_length = _content_length(res)
+    if content_length is not None and offset is not None and offset == content_length:
         if expected_hash is not None and hash != expected_hash:
             raise DownloadVerificationException(saveTo, hash, expected_hash)
         # Hash will not be written here if file is absent or incomplete
@@ -67,7 +79,13 @@ async def download(params: dict):
     accept_ranges = res.headers.get("Accept-Ranges")
     # If file is incomplete and web-server supports byte ranges - resume the download
     # In case file size somehow exceeds reported content-length - redownload the file completely
-    resume_download = offset is not None and accept_ranges is not None and accept_ranges == 'bytes' and offset < content_length
+    resume_download = (
+        offset is not None
+        and content_length is not None
+        and accept_ranges is not None
+        and accept_ranges == 'bytes'
+        and offset < content_length
+    )
     if resume_download:
         res = await s.get(url, headers={ 'Range': f'bytes={offset}-' }, allow_redirects=True)
     else:
@@ -75,8 +93,10 @@ async def download(params: dict):
         hasher.reset()
         res = await s.get(url, allow_redirects=True)
     res.raise_for_status()
-    content_length = int(res.headers.get("content-length"))
+    content_length = _content_length(res)
     progress_bar = tqdm(
+        # total=None renders an indeterminate bar when the server
+        # does not report a content length
         total=content_length,
         leave=False,
         unit="B",

@@ -1,0 +1,137 @@
+[project]
+name = "voice-changer"
+version = "1.0.0"
+description = "Realtime voice changer (RVC). Fork of w-okada/voice-changer."
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    # Keep in sync with requirements-common.txt
+    "msvc-runtime>=14.38; sys_platform=='win32'",
+    "uvicorn",
+    "pyOpenSSL",
+    "numpy<2",                       # Not all modules have migrated to NumPy 2 yet
+    "python-socketio",
+    "fastapi",
+    "python-multipart",
+    "scipy",
+    "librosa",
+    "sounddevice<0.5.0",             # https://github.com/spatialaudio/python-sounddevice/pull/539
+    "python-dotenv",
+    "pydantic-settings",
+    "xxhash",
+    "aiohttp",
+    "certifi",
+    "msgspec",
+]
+
+[project.optional-dependencies]
+# Backend extras. Install exactly one, e.g.: uv sync --extra cuda
+# Keep in sync with requirements-<backend>.txt
+cuda = [
+    # torch 2.9.1+cu128 covers Turing (GTX 16/RTX 20) through Blackwell (RTX 50);
+    # pre-Turing GPUs use the dml build. The +cu128 local version is pinned so
+    # that switching backends on an existing venv swaps the torch build.
+    "torch==2.9.1+cu128; sys_platform != 'darwin'",
+    "torch==2.9.1; sys_platform == 'darwin'",
+    "torchaudio==2.9.1+cu128; sys_platform != 'darwin'",
+    "torchaudio==2.9.1; sys_platform == 'darwin'",
+    "nvidia-cudnn-cu12~=9.0; sys_platform=='linux'",   # issue #197
+    "faiss-cpu; sys_platform!='linux'",
+    "faiss-gpu; sys_platform=='linux' and python_version<'3.11'",
+    "faiss-cpu; sys_platform=='linux' and python_version>='3.11'",
+    "onnxscript",
+    "onnxsim",
+    "onnxruntime-gpu<1.27",          # 1.27+ is built against CUDA 13
+    "torchcrepe",
+    "torchfcpe",
+    "safetensors",
+]
+dml = [
+    # Windows only. torch-directml requires torch 2.4.1 exactly. The +cpu local
+    # version comes from the PyTorch CPU index; on Windows it is the same build
+    # as the PyPI 2.4.1 wheel (PyPI Windows wheels are CPU builds).
+    "torch==2.4.1+cpu; sys_platform=='win32'",
+    "torchaudio==2.4.1+cpu; sys_platform=='win32'",
+    "torch-directml==0.2.5.dev240914; sys_platform=='win32'",
+    "faiss-cpu; sys_platform=='win32'",
+    "onnxscript; sys_platform=='win32'",
+    "onnxsim; sys_platform=='win32'",
+    "onnxruntime-directml; sys_platform=='win32'",
+    "torchcrepe; sys_platform=='win32'",
+    "torchfcpe; sys_platform=='win32'",
+    "safetensors; sys_platform=='win32'",
+]
+rocm = [
+    # Linux only. faiss-gpu wheels are cp310 only.
+    # NOTE: onnxruntime-rocm is NOT included: AMD ships it as a direct wheel URL
+    # which uv's universal lock cannot fork across Python versions. Install it
+    # via `requirements-rocm.txt` or start.py, which handle the URL correctly.
+    "torch>=2.8.0,<2.15; sys_platform=='linux'",
+    "torchaudio>=2.8.0; sys_platform=='linux'",
+    "pytorch-triton-rocm; sys_platform=='linux'",
+    "faiss-cpu; sys_platform=='linux'",
+    "onnxscript; sys_platform=='linux' and python_version<'3.11'",
+    "onnxsim; sys_platform=='linux' and python_version<'3.11'",
+    "torchcrepe; sys_platform=='linux'",
+    "torchfcpe; sys_platform=='linux'",
+    "safetensors; sys_platform=='linux'",
+]
+cpu = [
+    "torch",
+    "torchaudio",
+    "faiss-cpu",
+    "onnxscript",
+    "onnxsim",
+    "onnxruntime",
+    "torchcrepe",
+    "torchfcpe",
+    "safetensors",
+]
+
+[tool.uv]
+package = false
+
+# Backend extras install conflicting torch versions; each combination is
+# locked separately. Install at most one extra.
+conflicts = [
+    [{ extra = "cuda" }, { extra = "dml" }],
+    [{ extra = "cuda" }, { extra = "cpu" }],
+    [{ extra = "cuda" }, { extra = "rocm" }],
+    [{ extra = "dml" }, { extra = "cpu" }],
+    [{ extra = "dml" }, { extra = "rocm" }],
+    [{ extra = "cpu" }, { extra = "rocm" }],
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-rocm64"
+url = "https://download.pytorch.org/whl/rocm6.4"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+    # macOS is CPU-only regardless of the selected backend.
+    { index = "pytorch-cu128", extra = "cuda", marker = "sys_platform != 'darwin'" },
+    { index = "pytorch-cpu", extra = "cuda", marker = "sys_platform == 'darwin'" },
+    { index = "pytorch-rocm64", extra = "rocm", marker = "sys_platform == 'linux'" },
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cpu", extra = "dml", marker = "sys_platform == 'win32'" },
+]
+torchaudio = [
+    { index = "pytorch-cu128", extra = "cuda", marker = "sys_platform != 'darwin'" },
+    { index = "pytorch-cpu", extra = "cuda", marker = "sys_platform == 'darwin'" },
+    { index = "pytorch-rocm64", extra = "rocm", marker = "sys_platform == 'linux'" },
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cpu", extra = "dml", marker = "sys_platform == 'win32'" },
+]
+pytorch-triton-rocm = [
+    { index = "pytorch-rocm64", extra = "rocm", marker = "sys_platform == 'linux'" },
+]

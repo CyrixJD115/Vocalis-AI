@@ -80,7 +80,7 @@ def loadAllSlotInfo(model_dir: str):
 
 def saveSlotInfo(model_dir: str, slotIndex: int, slotInfo: ModelSlots):
     slotDir = os.path.join(model_dir, str(slotIndex))
-    logger.info(f"SlotInfo::: {slotInfo}")
+    logger.debug(f"SlotInfo::: {slotInfo}")
     slotInfoDict = asdict(slotInfo)
-    with open(os.path.join(slotDir, "params.json"), "w") as f:
+    with open(os.path.join(slotDir, "params.json"), "w", encoding="utf-8") as f:
         json.dump(slotInfoDict, f, indent=4)

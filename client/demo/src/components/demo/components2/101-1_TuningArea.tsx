@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { useAppState } from "../../../001_provider/001_AppStateProvider";
+import { NumberInput } from "./000-0_NumberInput";
 
 export type TuningAreaProps = {};
 
@@ -42,7 +43,15 @@ export const TuningArea = (_props: TuningAreaProps) => {
                                 }}
                             ></input>
                         </span>
-                        <span className="character-area-slider-control-val">{currentTuning}</span>
+                        <span className="character-area-slider-control-val">
+                            <NumberInput
+                                value={currentTuning}
+                                min={-50}
+                                max={50}
+                                step={1}
+                                onValueChange={tranValueUpdatedAction}
+                            />
+                        </span>
                     </div>
                 </div>
             </div>
@@ -51,3 +60,4 @@ export const TuningArea = (_props: TuningAreaProps) => {
 
     return tuningArea;
 };
+

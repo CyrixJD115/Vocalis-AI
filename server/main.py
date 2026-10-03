@@ -7,6 +7,15 @@ from const import SSL_KEY_DIR, ROOT_PATH, UPLOAD_DIR, TMP_DIR, LOG_FILE, get_ver
 os.chdir(ROOT_PATH)
 
 import sys
+
+# When the output is piped (f.e. by `uv run`), Python falls back to the locale
+# encoding (cp1252 on Windows), which cannot encode unicode in log messages
+# (e.g. Japanese sample model names) and makes the logging module spew
+# UnicodeEncodeError tracebacks. Replace unencodable characters instead.
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and _stream.encoding and _stream.encoding.lower() not in ("utf-8", "utf8"):
+        _stream.reconfigure(errors="replace")
+
 import uvicorn
 import asyncio
 
@@ -29,8 +38,11 @@ stream_handler.setLevel(logging.INFO)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)-15s %(levelname)-8s [%(module)s] %(message)s",
-    handlers=[logging.FileHandler(LOG_FILE), stream_handler]
+    handlers=[logging.FileHandler(LOG_FILE, encoding="utf-8"), stream_handler]
 )
+# faiss logs its AVX2/AVX512 fallback probing at INFO on every start
+logging.getLogger("faiss.loader").setLevel(logging.WARNING)
+logging.getLogger("loader").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
@@ -41,12 +53,20 @@ def setupArgParser():
     parser.add_argument("--https-key", type=str, default="ssl.key", help="path for the key of https")
     parser.add_argument("--https-cert", type=str, default="ssl.cert", help="path for the cert of https")
     parser.add_argument("--https-self-signed", type=strtobool, default=True, help="generate self-signed certificate")
+    parser.add_argument("--browser", type=strtobool, default=False, help="open the UI in the default web browser when the server is ready")
 
     return parser
 
 def check_port(port) -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(("127.0.0.1", port))
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", port))
+    except OSError:
+        logger.error(
+            f"Port {port} is already in use. Is another voice changer instance still running?"
+            " Stop it first, or choose a different port (PORT=... environment variable or start.py --port)."
+        )
+        sys.exit(1)
 
 def wait_for_server(proto: str, launch_browser: bool):
     while True:
@@ -55,9 +75,10 @@ def wait_for_server(proto: str, launch_browser: bool):
             result = sock.connect_ex(('127.0.0.1', settings.port))
         if result == 0:
             break
-    logger.info('-' * 8)
-    logger.info(f"The server is listening on {proto}://{settings.host}:{settings.port}/")
-    logger.info('-' * 8)
+    banner = '=' * 62
+    logger.info(banner)
+    logger.info(f" Voice changer is ready: {proto}://{settings.host}:{settings.port}/")
+    logger.info(banner)
     if launch_browser:
         open_new_tab(f'{proto}://127.0.0.1:{settings.port}')
 
@@ -133,17 +154,20 @@ async def main(args):
         logger.info("protocol: HTTP")
 
     # サーバ起動
-    if args.https:
-        # HTTPS サーバ起動
-        await runServer(settings.host, settings.port, args.launch_browser, args.log_level, key_path, cert_path)
-    else:
-        await runServer(settings.host, settings.port, args.launch_browser, args.log_level)
+    try:
+        if args.https:
+            # HTTPS サーバ起動
+            await runServer(settings.host, settings.port, args.browser, args.log_level, key_path, cert_path)
+        else:
+            await runServer(settings.host, settings.port, args.browser, args.log_level)
+    finally:
+        from downloader.HttpClient import HttpClient
+        await HttpClient.close_client()
 
 
 if __name__ == "__main__":
     parser = setupArgParser()
     args, _ = parser.parse_known_args()
-    args.launch_browser = False
 
     try:
         asyncio.run(main(args))

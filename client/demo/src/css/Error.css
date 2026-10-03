@@ -1,12 +1,12 @@
 .error-container {
     margin: 2rem;
     .top-error-message {
-        color: #44a;
+        color: #7ea6e0;
         font-size: 2rem;
         font-weight: 100;
     }
     .top-error-description {
-        color: #444;
+        color: #ccc;
         font-size: 1rem;
         font-weight: 100;
     }

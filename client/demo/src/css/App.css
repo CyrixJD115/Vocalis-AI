@@ -9,24 +9,26 @@
 }
 
 :root {
-    --title-color: #FFF;
-    --text-color: #333;
+    color-scheme: dark;
+
+    --title-color: #dedede;
+    --text-color: #dedede;
     --company-color1: rgba(64, 119, 187, 1);
-    --company-color2: rgba(29, 47, 78, 1);
-    --company-color3: rgba(255, 255, 255, 1);
+    --company-color2: rgb(14, 25, 45);
+    --company-color3: rgb(20, 20, 20);
 
     --sidebar-transition-time: 0.2s;
     --sidebar-transition-animation: ease-in-out;
 
-    --button-passthru-active-border: 1px solid #955;
-    --button-passthru-active: #fdd;
+    --button-passthru-active-border: 1px solid #a80000;
+    --button-passthru-active: #990000;
     --button-passthru-inactive-border: 1px solid #999;
-    --button-passthru-inactive: #aba;
+    --button-passthru-inactive: #6f6f6f;
 
-    --button-selector-active-border: 1px solid #999;
-    --button-selector-active: #ada;
-    --button-selector-inactive-border: 1px solid #333;
-    --button-selector-inactive: #aba;
+    --button-selector-active-border: 1px solid #006a00;
+    --button-selector-active: #006200;
+    --button-selector-inactive-border: 1px solid #003600;
+    --button-selector-inactive: #003200;
 
     --button-primary-active-border: 1px solid #FFF;
     --button-primary-active: #FFF;
@@ -38,10 +40,10 @@
     --button-secondary-inactive-border: 1px solid #FFF;
     --button-secondary-inactive: #FFF;
 
-    --dialog-background-tint: rgba(200, 200, 200, 0.4);
+    --dialog-background-tint: rgba(100, 100, 100, 0.4);
     --dialog-border-color: rgba(100, 100, 100, 1);
     --dialog-shadow-color: rgba(0, 0, 0, 0.3);
-    --dialog-background-color: rgba(255, 255, 255, 1);
+    --dialog-background-color: rgb(20, 20, 20);
 }
 
 html {
@@ -69,73 +71,38 @@ body {
     width: 10px;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --title-color: #dedede;
-        --text-color: #dedede;
-        --company-color1: rgba(64, 119, 187, 1);
-        --company-color2: rgb(14, 25, 45);
-        --company-color3: rgb(20, 20, 20);
+::-webkit-scrollbar-track {
+    background: #434343
+}
+::-webkit-scrollbar-thumb {
+    background: #6c6c6c
+}
 
-        --button-passthru-active-border: 1px solid #a80000;
-        --button-passthru-active: #990000;
-        --button-passthru-inactive-border: 1px solid #999;
-        --button-passthru-inactive: #6f6f6f;
-
-        --button-selector-active-border: 1px solid #006a00;
-        --button-selector-active: #006200;
-        --button-selector-inactive-border: 1px solid #003600;
-        --button-selector-inactive: #003200;
-
-        --button-primary-active-border: 1px solid #FFF;
-        --button-primary-active: #FFF;
-        --button-primary-inactive-border: 1px solid #FFF;
-        --button-primary-inactive: #FFF;
-
-        --button-secondary-active-border: 1px solid #FFF;
-        --button-secondary-active: #FFF;
-        --button-secondary-inactive-border: 1px solid #FFF;
-        --button-secondary-inactive: #FFF;
-
-        --dialog-background-tint: rgba(100, 100, 100, 0.4);
-        --dialog-border-color: rgba(100, 100, 100, 1);
-        --dialog-shadow-color: rgba(0, 0, 0, 0.3);
-        --dialog-background-color: rgb(20, 20, 20);
-    }
-
-    .dialog-container, .dialog-container2 {
-        .dialog-frame .dialog-fixed-size-content .model-slot-container .model-slot {
-            .model-slot-icon-pointable,
-            .model-slot-icon {
-                opacity: 0.8;
-            }
+.dialog-container, .dialog-container2 {
+    .dialog-frame .dialog-fixed-size-content .model-slot-container .model-slot {
+        .model-slot-icon-pointable,
+        .model-slot-icon {
+            opacity: 0.8;
         }
     }
+}
 
-    .character-area .portrait-area .portrait-container .portrait,
-    .model-slot-tile-icon {
-        opacity: 0.8;
-    }
+.character-area .portrait-area .portrait-container .portrait,
+.model-slot-tile-icon {
+    opacity: 0.8;
+}
 
-    a {
-        color: #FFF
-    }
+a {
+    color: #FFF
+}
 
-    a:visited {
-        color: #FFF
-    }
+a:visited {
+    color: #FFF
+}
 
-    ::-webkit-scrollbar-track {
-        background: #434343
-    }
-    ::-webkit-scrollbar-thumb {
-        background: #6c6c6c
-    }
-
-    textarea {
-        background: #000000;
-        color: #FFF;
-    }
+textarea {
+    background: #1a1a1a;
+    color: #FFF;
 }
 
 a.hint-text {
@@ -213,7 +180,7 @@ a.hint-text {
         width: 100%;
         .partition-header {
             font-weight: 700;
-            color: rgb(71, 69, 69);
+            color: #bcbcbc;
             display: flex;
             .caret {
                 width: 2rem;
@@ -243,12 +210,12 @@ a.hint-text {
 }
 .state-control-checkbox:checked + .partition .partition-content {
     max-height: 700px;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.07);
     transition: all var(--sidebar-transition-time) var(--sidebar-transition-animation);
 }
 .state-control-checkbox + .partition .partition-content {
     max-height: 0px;
-    background: rgba(233, 233, 255, 0.3);
+    background: rgba(255, 255, 255, 0.07);
     transition: all var(--sidebar-transition-time) var(--sidebar-transition-animation);
 }
 /* ROW */
@@ -622,7 +589,7 @@ a.hint-text {
 }
 
 .underline {
-    border-bottom: 3px solid #333;
+    border-bottom: 3px solid #888;
 }
 .left-padding-05 {
     padding-left: 0.5rem;
@@ -640,7 +607,7 @@ a.hint-text {
     margin-left: 2rem;
 }
 .highlight {
-    background-color: rgba(200, 200, 255, 0.3);
+    background-color: rgba(100, 149, 237, 0.2);
 }
 .guided {
     /* background-color: rgba(9, 133, 67, 0.3); */
@@ -656,16 +623,16 @@ a.hint-text {
 
 .body-section-title {
     font-size: 1.5rem;
-    color: rgb(51, 49, 49);
+    color: #dcdcdc;
 }
 .body-sub-section-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: rgb(3, 53, 12);
+    color: #7fd68a;
 }
 
 .body-item-title {
-    color: rgb(51, 99, 49);
+    color: #7fb87f;
     display: flex;
 }
 .body-item-text {
@@ -702,6 +669,36 @@ a.hint-text {
     accent-color: #33f;
 }
 
+/* Number inputs paired with sliders */
+input[type="range"] {
+    accent-color: #4077bb;
+}
+input[type="number"].slider-value-input {
+    width: 3.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-color);
+    border: 1px solid #4a4a4a;
+    border-radius: 4px;
+    padding: 0 2px;
+    font-size: 0.8rem;
+}
+input[type="number"].slider-value-input:disabled {
+    opacity: 0.5;
+}
+input[type="number"].slider-value-input:focus {
+    border-color: var(--company-color1);
+    outline: none;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
 .body-button-container {
     display: flex;
     flex-direction: row;
@@ -728,7 +725,8 @@ a.hint-text {
         border: solid 1px #999;
         border-radius: 2px;
         vertical-align: middle;
-        background: #ddd;
+        background: #555;
+        color: #999;
     }
     .body-button-active {
         user-select: none;
@@ -933,7 +931,8 @@ a.hint-text {
                         border: solid 1px #999;
                         border-radius: 2px;
                         vertical-align: middle;
-                        background: #ddd;
+                        background: #555;
+                        color: #999;
                     }
                     .model-slot-button-active {
                         user-select: none;
@@ -1421,10 +1420,10 @@ a.hint-text {
                     width: 5rem;
                     border: solid 1px #333;
                     border-radius: 2px;
-                    background: #d3d7d3;
+                    background: #555;
                     font-weight: 700;
                     text-align: center;
-                    color: grey;
+                    color: #999;
                 }
                 .character-area-control-passthru-button-stanby {
                     width: 5rem;
@@ -1847,18 +1846,18 @@ audio::-webkit-media-controls-overlay-enclosure{
             width: 30%;
             padding: 0 10px;
             .merge-lab-merge-button {
-                border: solid 2px #ddd;
-                color: black;
+                border: solid 2px #999;
+                color: #FFF;
                 font-size: 0.8rem;
                 border-radius: 5px;
-                background: #eee;
+                background: #333;
                 cursor: pointer;
                 padding: 5px;
                 height: 1.7rem;
                 text-align: center;
             }
             .merge-lab-merge-button:hover {
-                border: solid 2px #aaa;
+                border: solid 2px #faa;
             }
             .merge-lab-merge-buttons-notice {
                 font-size: 0.7rem;

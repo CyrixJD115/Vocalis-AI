@@ -68,6 +68,12 @@ class DeviceManager(object):
         device, metadata = self._get_device(id)
         self.device = device
         self.device_metadata = metadata
+        if device.type == 'cuda':
+            # RVC inference uses fixed-size inputs, so let cuDNN benchmark
+            # convolution algorithms once and reuse the fastest. TF32 speeds up
+            # matmul on Ampere and newer GPUs with negligible precision impact.
+            torch.backends.cudnn.benchmark = True
+            torch.set_float32_matmul_precision('high')
         self.fp16_available = self.is_fp16_available()
         logger.info(f'Switched to {metadata["name"]} ({device}). FP16 support: {self.fp16_available}')
 

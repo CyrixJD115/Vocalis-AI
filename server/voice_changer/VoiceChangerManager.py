@@ -87,6 +87,8 @@ class VoiceChangerManager(ServerAudioCallbacks):
             logger.info(f"Sample download.... {params}")
             await downloadSample(self.params.sample_mode, params.sampleId, self.params.model_dir, params.slot, params.params)
             self.modelSlotManager.getAllSlotInfo(reload=True)
+            if params.slot == self.settings.modelSlotIndex:
+                self.initialize(params.slot)
             info = {"status": "OK"}
             return info
 
@@ -102,10 +104,11 @@ class VoiceChangerManager(ServerAudioCallbacks):
         for file in params.files:
             logger.info(f"FILE: {file}")
             srcPath = os.path.join(UPLOAD_DIR, file.dir, file.name)
+            # Model files always land flat in the slot directory regardless of
+            # their staging subdirectory under UPLOAD_DIR
             dstDir = os.path.join(
                 self.params.model_dir,
                 str(params.slot),
-                file.dir,
             )
             dstPath = os.path.join(dstDir, file.name)
             os.makedirs(dstDir, exist_ok=True)
@@ -117,6 +120,9 @@ class VoiceChangerManager(ServerAudioCallbacks):
         if params.voiceChangerType == "RVC":
             slotInfo = RVCModelSlotGenerator.load_model(params)
             self.modelSlotManager.save_model_slot(params.slot, slotInfo)
+
+        if params.slot == self.settings.modelSlotIndex:
+            self.initialize(params.slot)
 
         logger.info(f"params, {params}")
 
@@ -141,7 +147,11 @@ class VoiceChangerManager(ServerAudioCallbacks):
     def initialize(self, val: int):
         slotInfo = self.modelSlotManager.get_slot_info(val)
         if slotInfo is None or slotInfo.voiceChangerType is None:
-            logger.warning(f"Model slot is not found {val}")
+            if val == -1:
+                # Normal state on first launch before the user picks a model
+                logger.info("No model selected yet. Pick a model in the UI to start voice conversion.")
+            else:
+                logger.warning(f"Model slot {val} is empty or has no model.")
             return
 
         self.settings.set_properties({
@@ -247,10 +257,28 @@ class VoiceChangerManager(ServerAudioCallbacks):
 
     def update_model_info(self, newData: str):
         # self.vc.update_model_info(newData)
-        self.modelSlotManager.update_model_info(newData)
+        data = json.loads(newData)
+        slot = int(data["slot"])
+        self.modelSlotManager.update_model_info(slot, data["key"], data["val"])
+        # Apply the change to the loaded model immediately instead of
+        # requiring a server restart (issue #223)
+        if slot == self.settings.modelSlotIndex:
+            self.initialize(slot)
+        return self.get_info()
+
+    def delete_model(self, slot: int):
+        if self.settings.modelSlotIndex == slot:
+            # Deselect before deleting so no loaded model references the files
+            self.update_settings("modelSlotIndex", -1)
+        self.modelSlotManager.delete_slot(slot)
         return self.get_info()
 
     def upload_model_assets(self, params: str):
         # self.vc.upload_model_assets(params)
         self.modelSlotManager.store_model_assets(params)
+        # Apply the change to the loaded model immediately instead of
+        # requiring a server restart (issue #223)
+        slot = int(json.loads(params)["slot"])
+        if slot == self.settings.modelSlotIndex:
+            self.initialize(slot)
         return self.get_info()

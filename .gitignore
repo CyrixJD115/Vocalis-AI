@@ -70,7 +70,9 @@ server/samples_0004_d.json
 server/test_official_v1_v2.json
 server/test_ddpn_v1_v2.json
 server/vcclient.log
+server/assets.json
 start_trainer.sh
 
 # venv
 venv/
+.venv/

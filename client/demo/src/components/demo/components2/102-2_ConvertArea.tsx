@@ -3,6 +3,7 @@ import { useAppState } from "../../../001_provider/001_AppStateProvider";
 import { useAppRoot } from "../../../001_provider/001_AppRootProvider";
 import { useGuiState } from "../001_GuiStateProvider";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { NumberInput } from "./000-0_NumberInput";
 
 export type ConvertProps = {
     inputChunkNums: number[];
@@ -76,7 +77,19 @@ export const ConvertArea = (props: ConvertProps) => {
                                 serverSetting.updateServerSettings({ ...serverSetting.serverSetting, extraConvertSize: Number(e.target.value) });
                                 setVoiceChangerSettingsChanged(true);
                             }} />
-                        <span className="config-sub-area-slider-control-val">{serverSetting.serverSetting.extraConvertSize} s</span>
+                        <span className="config-sub-area-slider-control-val">
+                            <NumberInput
+                                value={serverSetting.serverSetting.extraConvertSize}
+                                min={0.1}
+                                max={5}
+                                step={0.1}
+                                disabled={isConverting}
+                                onValueChange={(val) => {
+                                    serverSetting.updateServerSettings({ ...serverSetting.serverSetting, extraConvertSize: val });
+                                    setVoiceChangerSettingsChanged(true);
+                                }} />
+                            {" s"}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -101,7 +114,21 @@ export const ConvertArea = (props: ConvertProps) => {
                                     serverSetting.updateServerSettings({ ...serverSetting.serverSetting, serverReadChunkSize: Number(e.target.value) });
                                     setVoiceChangerSettingsChanged(true);
                                 }} />
-                            <span className="config-sub-area-slider-control-val">{((serverSetting.serverSetting.serverReadChunkSize * 128 * 1000) / 48000).toFixed(1)} ms</span>
+                            <span className="config-sub-area-slider-control-val">
+                                <NumberInput
+                                    value={serverSetting.serverSetting.serverReadChunkSize}
+                                    min={1}
+                                    max={1024}
+                                    step={1}
+                                    disabled={isConverting}
+                                    onValueChange={(val) => {
+                                        setWorkletNodeSetting({ ...setting.workletNodeSetting, inputChunkNum: val });
+                                        trancateBuffer();
+                                        serverSetting.updateServerSettings({ ...serverSetting.serverSetting, serverReadChunkSize: val });
+                                        setVoiceChangerSettingsChanged(true);
+                                    }} />
+                                {` ${((serverSetting.serverSetting.serverReadChunkSize * 128 * 1000) / 48000).toFixed(1)} ms`}
+                            </span>
                         </div>
                     </div>
                 </div>

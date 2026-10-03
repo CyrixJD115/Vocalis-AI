@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { useGuiState } from "./001_GuiStateProvider";
 import { useAppState } from "../../001_provider/001_AppStateProvider";
 import { Protocol } from "@dannadori/voice-changer-client-js";
+import { NumberInput } from "./components2/000-0_NumberInput";
 
 export const AdvancedSettingDialog = () => {
     const guiState = useGuiState();
@@ -66,7 +67,20 @@ export const AdvancedSettingDialog = () => {
                             }}
                             disabled={guiState.isConverting}
                         ></input>
-                        <span className="body-item-input-slider-val">{serverSetting.serverSetting.crossFadeOverlapSize} s</span>
+                        <span className="body-item-input-slider-val">
+                            <NumberInput
+                                value={serverSetting.serverSetting.crossFadeOverlapSize}
+                                min={0.05}
+                                max={0.2}
+                                step={0.01}
+                                onValueChange={(val) => {
+                                    serverSetting.updateServerSettings({ ...serverSetting.serverSetting, crossFadeOverlapSize: val });
+                                    guiState.setVoiceChangerSettingsChanged(true);
+                                }}
+                                disabled={guiState.isConverting}
+                            />
+                            {" s"}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -185,7 +199,17 @@ export const AdvancedSettingDialog = () => {
                                 serverSetting.updateServerSettings({ ...serverSetting.serverSetting, protect: Number(e.target.value) });
                             }}
                         ></input>
-                        <span className="body-item-input-slider-val">{serverSetting.serverSetting.protect}</span>
+                        <span className="body-item-input-slider-val">
+                            <NumberInput
+                                value={serverSetting.serverSetting.protect || 0}
+                                min={0}
+                                max={0.5}
+                                step={0.01}
+                                onValueChange={(val) => {
+                                    serverSetting.updateServerSettings({ ...serverSetting.serverSetting, protect: val });
+                                }}
+                            />
+                        </span>
                     </div>
                 </div>
             </div>

@@ -3,6 +3,7 @@ import { useAppState } from "../../../001_provider/001_AppStateProvider";
 import { F0Detector } from "@dannadori/voice-changer-client-js";
 import { useGuiState } from "../001_GuiStateProvider";
 import { useAppRoot } from "../../../001_provider/001_AppRootProvider";
+import { NumberInput } from "./000-0_NumberInput";
 
 export type QualityAreaProps = {
     detectors: string[];
@@ -87,7 +88,18 @@ export const QualityArea = (props: QualityAreaProps) => {
                                 }}
                             ></input>
                         </span>
-                        <span className="config-sub-area-slider-control-val">{serverSetting.serverSetting.silentThreshold} dB</span>
+                        <span className="config-sub-area-slider-control-val">
+                            <NumberInput
+                                value={serverSetting.serverSetting.silentThreshold}
+                                min={-90}
+                                max={-60}
+                                step={1}
+                                onValueChange={(val) => {
+                                    serverSetting.updateServerSettings({ ...serverSetting.serverSetting, silentThreshold: val });
+                                }}
+                            />
+                            {" dB"}
+                        </span>
                     </div>
                 </div>
             </div>

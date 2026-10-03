@@ -4,6 +4,8 @@ from torch.functional import F
 import torch
 import numpy as np
 import logging
+import threading
+import time
 from const import VoiceChangerType
 from data.ModelSlot import ModelSlots
 
@@ -31,6 +33,7 @@ class VoiceChangerV2:
         self.vcmodel: VoiceChangerModel | None = None
         self.device_manager = DeviceManager.get_instance()
         self.sola_buffer: torch.Tensor | None = None
+        self._warmup_thread: threading.Thread | None = None
         self.io_recorder = IORecorder(
             self.settings.inputSampleRate,
             self.settings.outputSampleRate,
@@ -41,10 +44,12 @@ class VoiceChangerV2:
         self.vcmodel = vcmodel
         self.vcmodel.realloc(self.block_frame, self.extra_frame, self.crossfade_frame, self.sola_search_frame)
         self.vcmodel.initialize()
+        self._schedule_warmup()
 
     def set_slot_info(self, slot_info: ModelSlots):
         self.vcmodel.set_slot_info(slot_info)
         self.vcmodel.initialize()
+        self._schedule_warmup()
 
     def get_type(self) -> VoiceChangerType:
         if self.vcmodel is None:
@@ -59,13 +64,15 @@ class VoiceChangerV2:
         self.sola_search_frame = self.settings.inputSampleRate // 100
         self._generate_strength()
 
-        self.vcmodel.set_sampling_rate(self.settings.inputSampleRate, self.settings.outputSampleRate)
-        self.vcmodel.realloc(self.block_frame, self.extra_frame, self.crossfade_frame, self.sola_search_frame)
+        if self.vcmodel is not None:
+            self.vcmodel.set_sampling_rate(self.settings.inputSampleRate, self.settings.outputSampleRate)
+            self.vcmodel.realloc(self.block_frame, self.extra_frame, self.crossfade_frame, self.sola_search_frame)
 
     def set_output_sample_rate(self):
         self.io_recorder.open(self.settings.inputSampleRate, self.settings.outputSampleRate)
 
-        self.vcmodel.set_sampling_rate(self.settings.inputSampleRate, self.settings.outputSampleRate)
+        if self.vcmodel is not None:
+            self.vcmodel.set_sampling_rate(self.settings.inputSampleRate, self.settings.outputSampleRate)
 
     def get_info(self):
         if self.vcmodel is not None:
@@ -87,11 +94,44 @@ class VoiceChangerV2:
         elif key == 'crossFadeOverlapSize':
             self.crossfade_frame = int(val * self.settings.inputSampleRate)
             self._generate_strength()
+        elif key == 'recordIO':
+            if val:
+                # Start with fresh files
+                self.io_recorder.open(self.settings.inputSampleRate, self.settings.outputSampleRate)
+            else:
+                # Close to finalize the wav headers, otherwise the files
+                # are served with zero length (issue #208)
+                self.io_recorder.close()
 
         if self.vcmodel is not None:
             self.vcmodel.update_settings(key, val, old_val)
             if key in {'gpu', 'serverReadChunkSize', 'extraConvertSize', 'crossFadeOverlapSize', 'silenceFront', 'forceFp32'}:
                 self.vcmodel.realloc(self.block_frame, self.extra_frame, self.crossfade_frame, self.sola_search_frame)
+            if key in {'gpu', 'forceFp32', 'disableJit', 'useONNX'}:
+                self._schedule_warmup()
+
+    def _schedule_warmup(self):
+        # The first inference on a freshly loaded model initializes CUDA kernels,
+        # runs the cuDNN autotuner and spins up the ONNX execution providers,
+        # which can take well over ten seconds. Doing it here (instead of on the
+        # user's first audio) makes voice conversion start without dead air.
+        if self.vcmodel is None:
+            return
+        if self._warmup_thread is not None and self._warmup_thread.is_alive():
+            return
+
+        def run():
+            try:
+                probe = (0.01 * np.sin(np.linspace(0, 200 * np.pi, self.block_frame))).astype(np.float32)
+                with self.device_manager.lock:
+                    start = time.perf_counter()
+                    self.on_request(probe)
+                logger.info(f"Model warmed up in {time.perf_counter() - start:.1f}s, ready to convert audio")
+            except Exception as e:
+                logger.warning(f"Model warmup failed (conversion will warm up on first use): {e}")
+
+        self._warmup_thread = threading.Thread(target=run, daemon=True, name="model-warmup")
+        self._warmup_thread.start()
 
 
     def _generate_strength(self):
@@ -172,7 +212,11 @@ class VoiceChangerV2:
 
     @torch.no_grad()
     def export2onnx(self):
+        if self.vcmodel is None:
+            raise VoiceChangerIsNotSelectedException("Voice Changer is not selected.")
         return self.vcmodel.export2onnx()
 
     def get_current_model_settings(self) -> dict:
+        if self.vcmodel is None:
+            return []
         return self.vcmodel.get_model_current()

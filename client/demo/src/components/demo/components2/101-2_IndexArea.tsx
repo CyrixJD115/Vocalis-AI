@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { useAppState } from "../../../001_provider/001_AppStateProvider";
+import { NumberInput } from "./000-0_NumberInput";
 
 export type IndexAreaProps = {};
 
@@ -46,7 +47,16 @@ export const IndexArea = (_props: IndexAreaProps) => {
                                 disabled={!selected.indexFile}
                             ></input>
                         </span>
-                        <span className="character-area-slider-control-val">{currentIndexRatio}</span>
+                        <span className="character-area-slider-control-val">
+                            <NumberInput
+                                value={currentIndexRatio}
+                                min={0}
+                                max={1}
+                                step={0.1}
+                                onValueChange={indexRatioValueUpdatedAction}
+                                disabled={!selected.indexFile}
+                            />
+                        </span>
                     </div>
                 </div>
             </div>

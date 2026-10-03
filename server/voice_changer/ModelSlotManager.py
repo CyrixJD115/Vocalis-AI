@@ -51,6 +51,13 @@ class ModelSlotManager:
             setattr(slotInfo, key, val)
         self._save_model_slot(slot_index, slotInfo)
 
+    def delete_slot(self, slot_index: int):
+        slotDir = os.path.join(self.model_dir, str(slot_index))
+        if os.path.isdir(slotDir):
+            logger.info(f"Deleting model slot {slot_index} ({slotDir})")
+            shutil.rmtree(slotDir)
+        self.modelSlots = loadAllSlotInfo(self.model_dir)
+
     def store_model_assets(self, params: str):
         paramsDict = json.loads(params)
         uploadPath = os.path.join(UPLOAD_DIR, paramsDict["file"])

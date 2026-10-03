@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { useAppState } from "../../../001_provider/001_AppStateProvider";
+import { NumberInput } from "./000-0_NumberInput";
 
 export type FormantShiftAreaProps = {};
 
@@ -42,7 +43,15 @@ export const FormantShiftArea = (_props: FormantShiftAreaProps) => {
                                 }}
                             ></input>
                         </span>
-                        <span className="character-area-slider-control-val">{currentFormantShift}</span>
+                        <span className="character-area-slider-control-val">
+                            <NumberInput
+                                value={currentFormantShift}
+                                min={-5}
+                                max={5}
+                                step={0.1}
+                                onValueChange={formantShiftValueUpdatedAction}
+                            />
+                        </span>
                     </div>
                 </div>
             </div>

@@ -6,6 +6,7 @@ import { AUDIO_ELEMENT_FOR_PLAY_MONITOR, AUDIO_ELEMENT_FOR_PLAY_RESULT, AUDIO_EL
 import { isDesktopApp } from "../../../const";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFolderClosed } from "@fortawesome/free-regular-svg-icons";
+import { toast } from "react-toastify";
 
 export type DeviceAreaProps = {};
 
@@ -617,7 +618,11 @@ export const DeviceArea = (_props: DeviceAreaProps) => {
         const onOutputRecordStopClicked = async () => {
             setOutputRecordingStarted(false);
             const record = await stopOutputRecording();
-            downloadRecord(record);
+            if (record.length === 0) {
+                toast.error("No audio was recorded. Make sure voice conversion is started before recording.");
+                return;
+            }
+            downloadRecord(record, audioContext.sampleRate);
         };
 
         const startClassName = outputRecordingStarted ? "config-sub-area-button-active" : "config-sub-area-button";
@@ -857,7 +862,7 @@ export const DeviceArea = (_props: DeviceAreaProps) => {
     );
 };
 
-const downloadRecord = (data: Float32Array) => {
+const downloadRecord = (data: Float32Array, sampleRate: number) => {
     const writeString = (view: DataView, offset: number, string: string) => {
         for (var i = 0; i < string.length; i++) {
             view.setUint8(offset + i, string.charCodeAt(i));
@@ -882,8 +887,8 @@ const downloadRecord = (data: Float32Array) => {
     view.setUint32(16, 16, true); // fmtチャンクのバイト数
     view.setUint16(20, 1, true); // フォーマットID
     view.setUint16(22, 1, true); // チャンネル数
-    view.setUint32(24, 48000, true); // サンプリングレート
-    view.setUint32(28, 48000 * 2, true); // データ速度
+    view.setUint32(24, sampleRate, true); // サンプリングレート
+    view.setUint32(28, sampleRate * 2, true); // データ速度
     view.setUint16(32, 2, true); // ブロックサイズ
     view.setUint16(34, 16, true); // サンプルあたりのビット数
     writeString(view, 36, "data"); // dataチャンク

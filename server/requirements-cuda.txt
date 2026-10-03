@@ -3,16 +3,25 @@
 # # wget https://repo.anaconda.com/archive/Anaconda3-2022.10-Linux-x86_64.sh
 # # bash Anaconda3-2022.10-Linux-x86_64.sh
 
-# PyPI onnxruntime-gpu>=1.19 is compiled with CUDA 12.x and cuDNN 9.x
---extra-index-url https://download.pytorch.org/whl/nightly/cu126
-torch>=2.4.0
-torchaudio
+# CUDA 12.8 wheels cover Nvidia GPUs from Turing (GTX 16 / RTX 20 series) up to
+# Blackwell (RTX 50 series), and require driver 570.26 or later. Pre-Turing
+# GPUs (GTX 900/1000 series) must use the DirectML build.
+# The +cu128 local version is pinned explicitly so that switching backends on an
+# existing venv always replaces the installed torch build.
+# onnxruntime-gpu must stay on the CUDA 12.x build (it is compiled against CUDA
+# 12.8): 1.27+ is compiled against CUDA 13.
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.9.1+cu128
+torchaudio==2.9.1+cu128
+# cuDNN 9 for onnxruntime-gpu; torch bundles it on Linux, but make it explicit
+# so the CUDA execution provider never fails to find libcudnn (issue #197).
+nvidia-cudnn-cu12~=9.0; sys_platform=='linux'
 faiss-cpu; sys_platform!='linux'
 faiss-gpu; sys_platform=='linux'
 
 onnxscript
 onnxsim
-onnxruntime-gpu
+onnxruntime-gpu<1.27
 torchcrepe
 torchfcpe
 safetensors

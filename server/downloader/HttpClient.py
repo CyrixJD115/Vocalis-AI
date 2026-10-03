@@ -18,3 +18,10 @@ class HttpClient:
             conn = aiohttp.TCPConnector(ssl_context=ssl_context)
             cls._instance.session = aiohttp.ClientSession(connector=conn)
         return cls._instance.session
+
+    @classmethod
+    async def close_client(cls) -> None:
+        # Avoid the "Unclosed client session" warning on shutdown
+        if cls._instance is not None and cls._instance.session is not None:
+            await cls._instance.session.close()
+            cls._instance.session = None
