@@ -75,6 +75,7 @@ const API_PATHS = [
     "/onnx",
     "/version",
     "/edition",
+    "/virtual_audio",
     "/tmp",
     "/socket.io",
 ];

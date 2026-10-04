@@ -106,6 +106,31 @@ export const ServerSettingKey = {
     modelSlotIndex: "modelSlotIndex",
 
     inputSampleRate: "inputSampleRate",
+
+    // Audio Enhancer (post-processing chain)
+    enhancerEnabled: "enhancerEnabled",
+    enhancerGateEnabled: "enhancerGateEnabled",
+    enhancerGateThreshold: "enhancerGateThreshold",
+    enhancerHpEnabled: "enhancerHpEnabled",
+    enhancerHpFreq: "enhancerHpFreq",
+    enhancerLpEnabled: "enhancerLpEnabled",
+    enhancerLpFreq: "enhancerLpFreq",
+    enhancerNrEnabled: "enhancerNrEnabled",
+    enhancerNrAmount: "enhancerNrAmount",
+    enhancerDeEssEnabled: "enhancerDeEssEnabled",
+    enhancerDeEssAmount: "enhancerDeEssAmount",
+    enhancerEqEnabled: "enhancerEqEnabled",
+    enhancerEqLow: "enhancerEqLow",
+    enhancerEqMid: "enhancerEqMid",
+    enhancerEqHigh: "enhancerEqHigh",
+    enhancerCompEnabled: "enhancerCompEnabled",
+    enhancerCompThreshold: "enhancerCompThreshold",
+    enhancerCompRatio: "enhancerCompRatio",
+    enhancerCompAttack: "enhancerCompAttack",
+    enhancerCompRelease: "enhancerCompRelease",
+    enhancerCompMakeup: "enhancerCompMakeup",
+    enhancerLimiterEnabled: "enhancerLimiterEnabled",
+    enhancerLimiterCeiling: "enhancerLimiterCeiling",
 } as const;
 export type ServerSettingKey = (typeof ServerSettingKey)[keyof typeof ServerSettingKey];
 
@@ -155,6 +180,31 @@ export type VoiceChangerServerSetting = {
     modelSlotIndex: number;
 
     inputSampleRate: InputSampleRate;
+
+    // Audio Enhancer (post-processing chain)
+    enhancerEnabled: number;
+    enhancerGateEnabled: number;
+    enhancerGateThreshold: number;
+    enhancerHpEnabled: number;
+    enhancerHpFreq: number;
+    enhancerLpEnabled: number;
+    enhancerLpFreq: number;
+    enhancerNrEnabled: number;
+    enhancerNrAmount: number;
+    enhancerDeEssEnabled: number;
+    enhancerDeEssAmount: number;
+    enhancerEqEnabled: number;
+    enhancerEqLow: number;
+    enhancerEqMid: number;
+    enhancerEqHigh: number;
+    enhancerCompEnabled: number;
+    enhancerCompThreshold: number;
+    enhancerCompRatio: number;
+    enhancerCompAttack: number;
+    enhancerCompRelease: number;
+    enhancerCompMakeup: number;
+    enhancerLimiterEnabled: number;
+    enhancerLimiterCeiling: number;
 };
 
 type ModelSlot = {
@@ -262,6 +312,31 @@ export const DefaultServerSetting: ServerInfo = {
     serverMonitorAudioGain: 1.0,
     asioInputChannel: -1,
     asioOutputChannel: -1,
+
+    // Audio Enhancer
+    enhancerEnabled: 0,
+    enhancerGateEnabled: 0,
+    enhancerGateThreshold: -60,
+    enhancerHpEnabled: 0,
+    enhancerHpFreq: 80,
+    enhancerLpEnabled: 0,
+    enhancerLpFreq: 12000,
+    enhancerNrEnabled: 0,
+    enhancerNrAmount: 50,
+    enhancerDeEssEnabled: 0,
+    enhancerDeEssAmount: 3,
+    enhancerEqEnabled: 0,
+    enhancerEqLow: 0,
+    enhancerEqMid: 0,
+    enhancerEqHigh: 0,
+    enhancerCompEnabled: 0,
+    enhancerCompThreshold: -24,
+    enhancerCompRatio: 4,
+    enhancerCompAttack: 10,
+    enhancerCompRelease: 100,
+    enhancerCompMakeup: 0,
+    enhancerLimiterEnabled: 1,
+    enhancerLimiterCeiling: -1,
 
     // VC Specific
     srcId: 0,

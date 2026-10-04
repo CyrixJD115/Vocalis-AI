@@ -16,7 +16,8 @@
         | "server"
         | "cpu"
         | "trash"
-        | "check";
+        | "check"
+        | "link";
 
     let { name, size = 16 }: { name: IconName; size?: number } = $props();
 
@@ -39,6 +40,7 @@
         cpu: "M5 5h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm4-4v4m6-4v4M9 19v4m6-4v4M3 9h2m-2 6h2m14-6h2m-2 6h2M9 9h6v6H9z",
         trash: "M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14ZM10 11v6m4-6v6",
         check: "M20 6 9 17l-5-5",
+        link: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
     };
 </script>
 

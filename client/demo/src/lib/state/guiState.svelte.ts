@@ -30,6 +30,7 @@ class GuiState {
     showClientInfoDialog = $state<boolean>(false);
     showPassThroughDialog = $state<boolean>(false);
     showTextInputDialog = $state<boolean>(false);
+    showVirtualAudioDialog = $state<boolean>(false);
 
     #textInputResolve: TextInputResolve | null = null;
 

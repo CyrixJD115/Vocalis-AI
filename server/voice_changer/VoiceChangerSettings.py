@@ -396,3 +396,219 @@ class VoiceChangerSettings:
     @silenceFront.setter
     def silenceFront(self, enable: str):
         self._silenceFront = int(enable)
+
+    # Audio Enhancer (post-processing chain) settings
+    _enhancerEnabled: int = 0
+
+    _enhancerGateEnabled: int = 0
+    _enhancerGateThreshold: float = -60
+
+    _enhancerHpEnabled: int = 0
+    _enhancerHpFreq: float = 80
+    _enhancerLpEnabled: int = 0
+    _enhancerLpFreq: float = 12000
+
+    _enhancerNrEnabled: int = 0
+    _enhancerNrAmount: float = 50
+
+    _enhancerDeEssEnabled: int = 0
+    _enhancerDeEssAmount: float = 3
+
+    _enhancerEqEnabled: int = 0
+    _enhancerEqLow: float = 0
+    _enhancerEqMid: float = 0
+    _enhancerEqHigh: float = 0
+
+    _enhancerCompEnabled: int = 0
+    _enhancerCompThreshold: float = -24
+    _enhancerCompRatio: float = 4
+    _enhancerCompAttack: float = 10
+    _enhancerCompRelease: float = 100
+    _enhancerCompMakeup: float = 0
+
+    _enhancerLimiterEnabled: int = 1
+    _enhancerLimiterCeiling: float = -1
+
+    @property
+    def enhancerEnabled(self):
+        return self._enhancerEnabled
+
+    @enhancerEnabled.setter
+    def enhancerEnabled(self, val):
+        self._enhancerEnabled = int(val)
+
+    @property
+    def enhancerGateEnabled(self):
+        return self._enhancerGateEnabled
+
+    @enhancerGateEnabled.setter
+    def enhancerGateEnabled(self, val):
+        self._enhancerGateEnabled = int(val)
+
+    @property
+    def enhancerGateThreshold(self):
+        return self._enhancerGateThreshold
+
+    @enhancerGateThreshold.setter
+    def enhancerGateThreshold(self, val):
+        self._enhancerGateThreshold = float(val)
+
+    @property
+    def enhancerHpEnabled(self):
+        return self._enhancerHpEnabled
+
+    @enhancerHpEnabled.setter
+    def enhancerHpEnabled(self, val):
+        self._enhancerHpEnabled = int(val)
+
+    @property
+    def enhancerHpFreq(self):
+        return self._enhancerHpFreq
+
+    @enhancerHpFreq.setter
+    def enhancerHpFreq(self, val):
+        self._enhancerHpFreq = float(val)
+
+    @property
+    def enhancerLpEnabled(self):
+        return self._enhancerLpEnabled
+
+    @enhancerLpEnabled.setter
+    def enhancerLpEnabled(self, val):
+        self._enhancerLpEnabled = int(val)
+
+    @property
+    def enhancerLpFreq(self):
+        return self._enhancerLpFreq
+
+    @enhancerLpFreq.setter
+    def enhancerLpFreq(self, val):
+        self._enhancerLpFreq = float(val)
+
+    @property
+    def enhancerNrEnabled(self):
+        return self._enhancerNrEnabled
+
+    @enhancerNrEnabled.setter
+    def enhancerNrEnabled(self, val):
+        self._enhancerNrEnabled = int(val)
+
+    @property
+    def enhancerNrAmount(self):
+        return self._enhancerNrAmount
+
+    @enhancerNrAmount.setter
+    def enhancerNrAmount(self, val):
+        self._enhancerNrAmount = float(val)
+
+    @property
+    def enhancerDeEssEnabled(self):
+        return self._enhancerDeEssEnabled
+
+    @enhancerDeEssEnabled.setter
+    def enhancerDeEssEnabled(self, val):
+        self._enhancerDeEssEnabled = int(val)
+
+    @property
+    def enhancerDeEssAmount(self):
+        return self._enhancerDeEssAmount
+
+    @enhancerDeEssAmount.setter
+    def enhancerDeEssAmount(self, val):
+        self._enhancerDeEssAmount = float(val)
+
+    @property
+    def enhancerEqEnabled(self):
+        return self._enhancerEqEnabled
+
+    @enhancerEqEnabled.setter
+    def enhancerEqEnabled(self, val):
+        self._enhancerEqEnabled = int(val)
+
+    @property
+    def enhancerEqLow(self):
+        return self._enhancerEqLow
+
+    @enhancerEqLow.setter
+    def enhancerEqLow(self, val):
+        self._enhancerEqLow = float(val)
+
+    @property
+    def enhancerEqMid(self):
+        return self._enhancerEqMid
+
+    @enhancerEqMid.setter
+    def enhancerEqMid(self, val):
+        self._enhancerEqMid = float(val)
+
+    @property
+    def enhancerEqHigh(self):
+        return self._enhancerEqHigh
+
+    @enhancerEqHigh.setter
+    def enhancerEqHigh(self, val):
+        self._enhancerEqHigh = float(val)
+
+    @property
+    def enhancerCompEnabled(self):
+        return self._enhancerCompEnabled
+
+    @enhancerCompEnabled.setter
+    def enhancerCompEnabled(self, val):
+        self._enhancerCompEnabled = int(val)
+
+    @property
+    def enhancerCompThreshold(self):
+        return self._enhancerCompThreshold
+
+    @enhancerCompThreshold.setter
+    def enhancerCompThreshold(self, val):
+        self._enhancerCompThreshold = float(val)
+
+    @property
+    def enhancerCompRatio(self):
+        return self._enhancerCompRatio
+
+    @enhancerCompRatio.setter
+    def enhancerCompRatio(self, val):
+        self._enhancerCompRatio = float(val)
+
+    @property
+    def enhancerCompAttack(self):
+        return self._enhancerCompAttack
+
+    @enhancerCompAttack.setter
+    def enhancerCompAttack(self, val):
+        self._enhancerCompAttack = float(val)
+
+    @property
+    def enhancerCompRelease(self):
+        return self._enhancerCompRelease
+
+    @enhancerCompRelease.setter
+    def enhancerCompRelease(self, val):
+        self._enhancerCompRelease = float(val)
+
+    @property
+    def enhancerCompMakeup(self):
+        return self._enhancerCompMakeup
+
+    @enhancerCompMakeup.setter
+    def enhancerCompMakeup(self, val):
+        self._enhancerCompMakeup = float(val)
+
+    @property
+    def enhancerLimiterEnabled(self):
+        return self._enhancerLimiterEnabled
+
+    @enhancerLimiterEnabled.setter
+    def enhancerLimiterEnabled(self, val):
+        self._enhancerLimiterEnabled = int(val)
+
+    @property
+    def enhancerLimiterCeiling(self):
+        return self._enhancerLimiterCeiling
+
+    @enhancerLimiterCeiling.setter
+    def enhancerLimiterCeiling(self, val):
+        self._enhancerLimiterCeiling = float(val)

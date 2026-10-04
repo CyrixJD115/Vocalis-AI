@@ -50,6 +50,31 @@ const info = {
     forceFp32: 0,
     disableJit: 0,
     modelSlotIndex: 0,
+
+    enhancerEnabled: 0,
+    enhancerGateEnabled: 0,
+    enhancerGateThreshold: -60,
+    enhancerHpEnabled: 0,
+    enhancerHpFreq: 80,
+    enhancerLpEnabled: 0,
+    enhancerLpFreq: 12000,
+    enhancerNrEnabled: 0,
+    enhancerNrAmount: 50,
+    enhancerDeEssEnabled: 0,
+    enhancerDeEssAmount: 3,
+    enhancerEqEnabled: 0,
+    enhancerEqLow: 0,
+    enhancerEqMid: 0,
+    enhancerEqHigh: 0,
+    enhancerCompEnabled: 0,
+    enhancerCompThreshold: -24,
+    enhancerCompRatio: 4,
+    enhancerCompAttack: 10,
+    enhancerCompRelease: 100,
+    enhancerCompMakeup: 0,
+    enhancerLimiterEnabled: 1,
+    enhancerLimiterCeiling: -1,
+
     maxInputLength: 128 * 2048,
     status: "ok",
     gpus: [
@@ -200,6 +225,42 @@ const server = http.createServer((req, res) => {
     }
     if (url.pathname === "/info") {
         res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(info));
+        return;
+    }
+    if (url.pathname === "/virtual_audio/status") {
+        res.writeHead(200, { "Content-Type": "application/json" }).end(
+            JSON.stringify({
+                status: "OK",
+                platform: "Linux",
+                capability: "manage",
+                virtualDeviceDetected: false,
+                detectedDevices: [],
+                sinkName: "vocalis_ai_out",
+                sinkLoaded: false,
+                guide: "Mock server: virtual audio actions are simulated.",
+                deviceCacheRefreshed: true,
+            }),
+        );
+        return;
+    }
+    if ((url.pathname === "/virtual_audio/create" || url.pathname === "/virtual_audio/remove") && req.method === "POST") {
+        const create = url.pathname.endsWith("create");
+        res.writeHead(200, { "Content-Type": "application/json" }).end(
+            JSON.stringify({
+                status: "OK",
+                platform: "Linux",
+                capability: "manage",
+                created: create,
+                removed: !create,
+                virtualDeviceDetected: create,
+                detectedDevices: create ? ["Vocalis AI Output"] : [],
+                sinkName: "vocalis_ai_out",
+                sinkLoaded: create,
+                message: `Mock: ${create ? "created" : "removed"} (not real)`,
+                guide: "Mock server: virtual audio actions are simulated.",
+                deviceCacheRefreshed: true,
+            }),
+        );
         return;
     }
     if (url.pathname === "/update_settings" && req.method === "POST") {

@@ -16,6 +16,7 @@ from voice_changer.utils.ModelMerger import MergeElement, ModelMergerRequest
 from voice_changer.utils.VoiceChangerModel import AudioInOutFloat
 from settings import get_settings
 from voice_changer.common.deviceManager.DeviceManager import DeviceManager
+from voice_changer.common.AudioPostProcessor import AudioPostProcessor
 from Exceptions import (
     PipelineNotInitializedException,
     VoiceChangerIsNotSelectedException,
@@ -65,6 +66,7 @@ class VoiceChangerManager(ServerAudioCallbacks):
 
         self.vc = VoiceChangerV2(self.settings)
         self.server_audio = ServerAudio(self, self.settings)
+        self.post_processor = AudioPostProcessor(self.settings)
 
         logger.info("Initialized.")
 
@@ -208,28 +210,43 @@ class VoiceChangerManager(ServerAudioCallbacks):
         self.server_audio.update_settings(key, val, old_value)
         self.vc.update_settings(key, val, old_value)
 
+        if key == 'inputSampleRate':
+            self.post_processor.set_sample_rate(self.settings.inputSampleRate)
+        elif key.startswith('enhancer'):
+            self.post_processor.parameters_changed()
+
         return self.get_info()
 
     def change_voice(self, receivedData: AudioInOutFloat) -> tuple[AudioInOutFloat, tuple, tuple | None]:
         if self.settings.passThrough:  # パススルー
-            vol = float(np.sqrt(
+            audio, vol, perf, err = receivedData, float(np.sqrt(
                 np.square(receivedData).mean(dtype=np.float32)
-            ))
-            return receivedData, vol, [0, 0, 0], None
+            )), [0, 0, 0], None
+        else:
+            try:
+                with self.device_manager.lock:
+                    audio, vol, perf = self.vc.on_request(receivedData)
+                err = None
+            except VoiceChangerIsNotSelectedException as e:
+                logger.exception(e)
+                return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], ('VoiceChangerIsNotSelectedException', format_exc())
+            except PipelineNotInitializedException as e:
+                logger.exception(e)
+                return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], ('PipelineNotInitializedException', format_exc())
+            except Exception as e:
+                logger.exception(e)
+                return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], ('Exception', format_exc())
 
-        try:
-            with self.device_manager.lock:
-                audio, vol, perf = self.vc.on_request(receivedData)
-            return audio, vol, perf, None
-        except VoiceChangerIsNotSelectedException as e:
-            logger.exception(e)
-            return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], ('VoiceChangerIsNotSelectedException', format_exc())
-        except PipelineNotInitializedException as e:
-            logger.exception(e)
-            return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], ('PipelineNotInitializedException', format_exc())
-        except Exception as e:
-            logger.exception(e)
-            return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], ('Exception', format_exc())
+        # Audio Enhancer: applied to both converted and passthrough audio.
+        # Failures fall back to the unprocessed signal instead of killing audio.
+        if err is None:
+            try:
+                audio = self.post_processor.process(audio)
+                vol = float(np.sqrt(np.square(audio).mean(dtype=np.float32)))
+            except Exception as e:
+                logger.exception(e)
+
+        return audio, vol, perf, err
 
     def export2onnx(self):
         return self.vc.export2onnx()

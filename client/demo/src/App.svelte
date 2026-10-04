@@ -14,6 +14,7 @@
     import AdvancedSettingDialog from "./components/dialogs/AdvancedSettingDialog.svelte";
     import MergeLabDialog from "./components/dialogs/MergeLabDialog.svelte";
     import ModelSlotManagerDialog from "./components/dialogs/ModelSlotManagerDialog.svelte";
+    import VirtualAudioDialog from "./components/dialogs/VirtualAudioDialog.svelte";
     import { appState } from "./lib/state/appState.svelte";
     import { serverState } from "./lib/state/serverState.svelte";
     import { guiState } from "./lib/state/guiState.svelte";
@@ -64,3 +65,4 @@
 <AdvancedSettingDialog />
 <MergeLabDialog />
 <ModelSlotManagerDialog />
+<VirtualAudioDialog />

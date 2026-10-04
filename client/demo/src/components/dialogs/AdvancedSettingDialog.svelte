@@ -56,6 +56,20 @@
                 guiState.setVoiceChangerSettingsChanged(true);
             }}
         />
+        <SliderRow
+            label="Chunk"
+            hint="Audio chunk size in 128-sample units. Smaller values reduce latency but can stutter on slow GPUs; larger values are stabler but laggier."
+            min={64}
+            max={512}
+            step={32}
+            suffix="x128"
+            value={serverSetting.serverReadChunkSize}
+            disabled={isConverting}
+            onValueChange={(v) => {
+                serverState.updateServerSettings({ ...serverSetting, serverReadChunkSize: v });
+                guiState.setVoiceChangerSettingsChanged(true);
+            }}
+        />
         <SelectRow
             label="SilenceFront"
             hint="An optimization option that removes 'Extra' part during pitch extraction. Recommended to keep it 'on'."

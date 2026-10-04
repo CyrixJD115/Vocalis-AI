@@ -2,6 +2,7 @@
     import QualityArea from "./QualityArea.svelte";
     import ConvertArea from "./ConvertArea.svelte";
     import DeviceArea from "./DeviceArea.svelte";
+    import EnhancerArea from "./EnhancerArea.svelte";
     import ServerIOAnalyzer from "./ServerIOAnalyzer.svelte";
     import { guiState } from "../lib/state/guiState.svelte";
 
@@ -19,6 +20,11 @@
     <section class="card p-4">
         <div class="card-title mb-2">Audio &amp; Devices</div>
         <DeviceArea />
+    </section>
+
+    <section class="card p-4">
+        <div class="card-title mb-2">Audio Enhancer</div>
+        <EnhancerArea />
     </section>
 
     <section class="card p-4">

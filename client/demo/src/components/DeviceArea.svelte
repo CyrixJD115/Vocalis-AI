@@ -1,6 +1,7 @@
 <script lang="ts">
     import Icon from "../lib/icons/Icon.svelte";
     import SelectRow, { type SelectOption } from "./ui/SelectRow.svelte";
+    import SliderRow from "./ui/SliderRow.svelte";
     import ServerDeviceSelect from "./ui/ServerDeviceSelect.svelte";
     import { serverState } from "../lib/state/serverState.svelte";
     import { vcClientState } from "../lib/state/vcClient.svelte";
@@ -190,6 +191,9 @@
                 server
             </label>
         </div>
+        <button class="btn px-2" title="Virtual audio routing setup" aria-label="Virtual audio routing setup" onclick={() => (guiState.showVirtualAudioDialog = true)}>
+            <Icon name="link" size={14} />
+        </button>
         <button class="btn px-2" title="Reload devices" aria-label="Reload devices" onclick={() => guiState.reloadDeviceInfo()}>
             <Icon name="refresh" size={14} />
         </button>
@@ -283,13 +287,44 @@
         <!-- server sample rate -->
         <SelectRow
             label="S.R."
-            hint="Sample rate of audio devices."
+            hint="Sample rate (Hz) used by the input/output/monitor devices. 48000 is the safest choice; 44100 matches most music gear. All devices must support the selected rate."
             value={String(serverSetting.serverAudioSampleRate)}
-            options={[16000, 32000, 44100, 48000, 96000, 192000].map((sr) => ({ value: String(sr), label: String(sr) }))}
+            options={[16000, 32000, 44100, 48000, 96000, 192000].map((sr) => ({ value: String(sr), label: `${sr} Hz` }))}
             onValueChange={(v) => {
                 serverState.updateServerSettings({ ...serverSetting, serverAudioSampleRate: Number(v) });
                 guiState.setVoiceChangerSettingsChanged(true);
             }}
+        />
+        <!-- server gains -->
+        <SliderRow
+            label="Gain (in)"
+            hint="Input gain applied to the microphone signal before conversion."
+            min={0}
+            max={4}
+            step={0.05}
+            suffix="x"
+            value={serverSetting.serverInputAudioGain}
+            onValueChange={(v) => serverState.updateServerSettings({ ...serverSetting, serverInputAudioGain: v })}
+        />
+        <SliderRow
+            label="Gain (out)"
+            hint="Output gain applied to the converted signal before it goes to the output device."
+            min={0}
+            max={4}
+            step={0.05}
+            suffix="x"
+            value={serverSetting.serverOutputAudioGain}
+            onValueChange={(v) => serverState.updateServerSettings({ ...serverSetting, serverOutputAudioGain: v })}
+        />
+        <SliderRow
+            label="Gain (mon)"
+            hint="Monitor gain applied to your own monitoring feed only. Other apps never hear this."
+            min={0}
+            max={4}
+            step={0.05}
+            suffix="x"
+            value={serverSetting.serverMonitorAudioGain}
+            onValueChange={(v) => serverState.updateServerSettings({ ...serverSetting, serverMonitorAudioGain: v })}
         />
     {/if}
 
