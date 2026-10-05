@@ -120,6 +120,11 @@ class Pipeline:
         )
         f0 *= 2 ** ((f0_up_key - formant_shift) / 12)
 
+        # NaN/inf or out-of-range f0 leaking into the TorchScript synthesizer
+        # triggers CUDA device-side asserts that poison the whole CUDA context.
+        f0 = torch.nan_to_num(f0, nan=0.0, posinf=0.0, neginf=0.0)
+        f0 = torch.clamp(f0, min=0.0, max=HUBERT_SAMPLE_RATE / 2)
+
         f0_mel = 1127.0 * torch.log(1.0 + f0 / 700.0)
         f0_mel = torch.clip(
             (f0_mel - F0_MEL_MIN) * 254 / (F0_MEL_MAX - F0_MEL_MIN) + 1,

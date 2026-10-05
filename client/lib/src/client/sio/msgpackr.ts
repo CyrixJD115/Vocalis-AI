@@ -1,6 +1,6 @@
 // Based on https://github.com/socketio/socket.io-msgpack-parser/blob/main/index.js
 import { pack, unpack } from 'msgpackr'
-import Emitter from 'component-emitter'
+import { Emitter } from '@socket.io/component-emitter'
 
 export const protocol = 5;
 

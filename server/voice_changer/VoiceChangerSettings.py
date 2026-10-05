@@ -172,13 +172,15 @@ class VoiceChangerSettings:
         self._disableJit = int(enable)
 
     # Server Audio settings
+    # 48000 is the native rate of most modern Windows devices and virtual
+    # cables (VB-CABLE defaults to 48000), avoiding extra resampling stages.
     _serverAudioStated: int = 0
     _enableServerAudio: int = 0
-    _serverInputAudioSampleRate: int = 44100
-    _serverOutputAudioSampleRate: int = 44100
-    _serverMonitorAudioSampleRate: int = 44100
+    _serverInputAudioSampleRate: int = 48000
+    _serverOutputAudioSampleRate: int = 48000
+    _serverMonitorAudioSampleRate: int = 48000
 
-    _serverAudioSampleRate: int = 44100
+    _serverAudioSampleRate: int = 48000
 
     _serverInputDeviceId: int = -1
     _serverOutputDeviceId: int = -1

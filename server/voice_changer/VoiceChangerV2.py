@@ -25,7 +25,7 @@ class VoiceChangerV2:
         # 初期化
         self.settings = settings
 
-        self.block_frame = self.settings.serverReadChunkSize * 128
+        self.block_frame = self._calc_block_frame()
         self.crossfade_frame = int(self.settings.crossFadeOverlapSize * self.settings.inputSampleRate)
         self.extra_frame = int(self.settings.extraConvertSize * self.settings.inputSampleRate)
         self.sola_search_frame = self.settings.inputSampleRate // 100
@@ -56,9 +56,17 @@ class VoiceChangerV2:
             return "None"
         return self.vcmodel.voiceChangerType
 
+    def _calc_block_frame(self):
+        # Chunk size is defined on a 48kHz basis (128 samples per unit) and
+        # must be rescaled to the actual processing sample rate. ServerAudio
+        # opens the device stream with the same formula, keeping the pipeline
+        # buffers consistent with the blocks the device delivers.
+        return int(self.settings.serverReadChunkSize * 128 / 48000 * self.settings.inputSampleRate)
+
     def set_input_sample_rate(self):
         self.io_recorder.open(self.settings.inputSampleRate, self.settings.outputSampleRate)
 
+        self.block_frame = self._calc_block_frame()
         self.extra_frame = int(self.settings.extraConvertSize * self.settings.inputSampleRate)
         self.crossfade_frame = int(self.settings.crossFadeOverlapSize * self.settings.inputSampleRate)
         self.sola_search_frame = self.settings.inputSampleRate // 100
@@ -81,7 +89,7 @@ class VoiceChangerV2:
 
     def update_settings(self, key: str, val: Any, old_val: Any):
         if key == "serverReadChunkSize":
-            self.block_frame = self.settings.serverReadChunkSize * 128
+            self.block_frame = self._calc_block_frame()
         elif key == 'gpu':
             # When changing GPU, need to re-allocate fade-in/fade-out buffers on different device
             self._generate_strength()

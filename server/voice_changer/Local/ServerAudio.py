@@ -1,4 +1,5 @@
 import numpy as np
+import time
 from const import SERVER_DEVICE_SAMPLE_RATES
 
 from queue import Queue
@@ -19,6 +20,20 @@ Available sample rates:
   [Output]: %s
   [Monitor]: %s"""
 ERR_GENERIC_SERVER_AUDIO_ERROR = "A server audio error occurred."
+ERR_DEVICE_NOT_SELECTED = (
+    "Input or output audio device is not selected. "
+    "Select both an input (microphone) and an output (speakers/virtual cable) device in the Device area."
+)
+ERR_HOST_API_MISMATCH = (
+    "Input and output devices use different audio APIs (%s vs %s). "
+    "Windows cannot open them in a single stream. Select both devices from the same API "
+    "(recommended: 'Windows WASAPI', or 'Windows DirectSound')."
+)
+ERR_SERVER_AUDIO_START_FAILED = "Failed to open the audio stream: %s"
+
+# Minimum interval between identical errors emitted from the audio callback,
+# so a persistent failure does not spam the UI with a toast per audio block.
+ERROR_EMIT_INTERVAL = 5.0
 
 class ServerAudioCallbacks(Protocol):
     def on_audio(self, unpackedData: AudioInOutFloat) -> tuple[AudioInOutFloat, list[Union[int, float]]]:
@@ -41,6 +56,18 @@ class ServerAudio:
         self.monitor = None
 
         self.running = False
+
+        self._last_error: tuple[str, str] | None = None
+        self._last_error_time = 0.0
+
+    def _emit_error_throttled(self, err: tuple[str, str]):
+        """Emit a callback-thread error at most once per ERROR_EMIT_INTERVAL,
+        keeping the UI informed without flooding it on every audio block."""
+        now = time.time()
+        if self._last_error != err or now - self._last_error_time >= ERROR_EMIT_INTERVAL:
+            self._last_error = err
+            self._last_error_time = now
+            self.callbacks.emit_to(0, self.performance, err)
 
     def getServerInputAudioDevice(self, index: int):
         audioinput, _ = list_audio_device()
@@ -79,8 +106,9 @@ class ServerAudio:
             outputChannels = outdata.shape[1]
             outdata[:] = (np.repeat(out_wav, outputChannels).reshape(-1, outputChannels) * self.settings.serverOutputAudioGain)
         except Exception as e:
-            self.callbacks.emit_to(0, self.performance, ('ERR_GENERIC_SERVER_AUDIO_ERROR', ERR_GENERIC_SERVER_AUDIO_ERROR))
+            self._emit_error_throttled(('ERR_GENERIC_SERVER_AUDIO_ERROR', f"{ERR_GENERIC_SERVER_AUDIO_ERROR} ({e})"))
             logger.exception(e)
+            outdata.fill(0)
 
     def audio_stream_callback_mon_queue(self, indata: np.ndarray, outdata: np.ndarray, frames, times, status):
         try:
@@ -89,8 +117,9 @@ class ServerAudio:
             outputChannels = outdata.shape[1]
             outdata[:] = (np.repeat(out_wav, outputChannels).reshape(-1, outputChannels) * self.settings.serverOutputAudioGain)
         except Exception as e:
-            self.callbacks.emit_to(0, self.performance, ('ERR_GENERIC_SERVER_AUDIO_ERROR', ERR_GENERIC_SERVER_AUDIO_ERROR))
+            self._emit_error_throttled(('ERR_GENERIC_SERVER_AUDIO_ERROR', f"{ERR_GENERIC_SERVER_AUDIO_ERROR} ({e})"))
             logger.exception(e)
+            outdata.fill(0)
 
     def audio_monitor_callback(self, outdata: np.ndarray, frames, times, status):
         try:
@@ -100,8 +129,9 @@ class ServerAudio:
             outputChannels = outdata.shape[1]
             outdata[:] = (np.repeat(mon_wav, outputChannels).reshape(-1, outputChannels) * self.settings.serverMonitorAudioGain)
         except Exception as e:
-            self.callbacks.emit_to(0, self.performance, ('ERR_GENERIC_SERVER_AUDIO_ERROR', ERR_GENERIC_SERVER_AUDIO_ERROR))
+            self._emit_error_throttled(('ERR_GENERIC_SERVER_AUDIO_ERROR', f"{ERR_GENERIC_SERVER_AUDIO_ERROR} ({e})"))
             logger.exception(e)
+            outdata.fill(0)
 
     ###########################################
     # Main Loop Section
@@ -156,6 +186,8 @@ class ServerAudio:
     ###########################################
     def start(self):
         self.stop()
+        self._last_error = None
+        self._last_error_time = 0.0
 
         sd._terminate()
         sd._initialize()
@@ -165,27 +197,46 @@ class ServerAudio:
         serverOutputAudioDevice = self.getServerOutputAudioDevice(self.settings.serverOutputDeviceId)
         serverMonitorAudioDevice = self.getServerOutputAudioDevice(self.settings.serverMonitorDeviceId)
 
+        # Deviceがなかったら中断
+        if serverInputAudioDevice is None or serverOutputAudioDevice is None:
+            missing = []
+            if serverInputAudioDevice is None:
+                missing.append("input")
+            if serverOutputAudioDevice is None:
+                missing.append("output")
+            logger.error(f"Device is not selected: {', '.join(missing)}")
+            self.callbacks.emit_to(0, self.performance, ('ERR_DEVICE_NOT_SELECTED', ERR_DEVICE_NOT_SELECTED))
+            return
+
+        # Windows (and most PortAudio backends) cannot combine devices from
+        # different host APIs in one full-duplex stream (PaErrorCode -9993).
+        if serverInputAudioDevice.hostAPI != serverOutputAudioDevice.hostAPI:
+            err = ERR_HOST_API_MISMATCH % (serverInputAudioDevice.hostAPI, serverOutputAudioDevice.hostAPI)
+            logger.error(err)
+            self.callbacks.emit_to(0, self.performance, ('ERR_HOST_API_MISMATCH', err))
+            return
+
         # Generate ExtraSetting
         wasapiExclusiveMode = bool(self.settings.exclusiveMode)
 
         inputChannels = serverInputAudioDevice.maxInputChannels
         inputExtraSetting = None
-        if serverInputAudioDevice and "WASAPI" in serverInputAudioDevice.hostAPI:
+        if "WASAPI" in serverInputAudioDevice.hostAPI:
             inputExtraSetting = sd.WasapiSettings(exclusive=wasapiExclusiveMode, auto_convert=not wasapiExclusiveMode)
-        elif serverInputAudioDevice and "ASIO" in serverInputAudioDevice.hostAPI and self.settings.asioInputChannel != -1:
+        elif "ASIO" in serverInputAudioDevice.hostAPI and self.settings.asioInputChannel != -1:
             inputExtraSetting = sd.AsioSettings(channel_selectors=[self.settings.asioInputChannel])
             inputChannels = 1
 
         outputChannels = serverOutputAudioDevice.maxOutputChannels
         outputExtraSetting = None
-        if serverOutputAudioDevice and "WASAPI" in serverOutputAudioDevice.hostAPI:
+        if "WASAPI" in serverOutputAudioDevice.hostAPI:
             outputExtraSetting = sd.WasapiSettings(exclusive=wasapiExclusiveMode, auto_convert=not wasapiExclusiveMode)
-        elif serverInputAudioDevice and "ASIO" in serverInputAudioDevice.hostAPI and self.settings.asioOutputChannel != -1:
+        elif "ASIO" in serverOutputAudioDevice.hostAPI and self.settings.asioOutputChannel != -1:
             outputExtraSetting = sd.AsioSettings(channel_selectors=[self.settings.asioOutputChannel])
             outputChannels = 1
 
         monitorExtraSetting = None
-        if serverMonitorAudioDevice and "WASAPI" in serverMonitorAudioDevice.hostAPI:
+        if serverMonitorAudioDevice is not None and "WASAPI" in serverMonitorAudioDevice.hostAPI:
             monitorExtraSetting = sd.WasapiSettings(exclusive=wasapiExclusiveMode, auto_convert=not wasapiExclusiveMode)
 
         logger.info("Devices:")
@@ -193,55 +244,50 @@ class ServerAudio:
         logger.info(f"  [Output]: {serverOutputAudioDevice}, {outputExtraSetting}")
         logger.info(f"  [Monitor]: {serverMonitorAudioDevice}, {monitorExtraSetting}")
 
-        # Deviceがなかったらいったんスリープ
-        if serverInputAudioDevice is None or serverOutputAudioDevice is None:
-            logger.error("Input or output device is not selected.")
-            self.callbacks.emit_to(0, self.performance, ('ERR_GENERIC_SERVER_AUDIO_ERROR', ERR_GENERIC_SERVER_AUDIO_ERROR))
-            return
-
         # サンプリングレート
         # 同一サンプリングレートに統一（変換時にサンプルが不足する場合があるため。パディング方法が明らかになれば、それぞれ設定できるかも）
         self.settings.serverInputAudioSampleRate = self.settings.serverAudioSampleRate
         self.settings.serverOutputAudioSampleRate = self.settings.serverAudioSampleRate
         self.settings.serverMonitorAudioSampleRate = self.settings.serverAudioSampleRate
 
-        # Sample Rate Check
-        if "WASAPI" not in serverInputAudioDevice.hostAPI and not wasapiExclusiveMode:
-            inputAudioSampleRateAvailable = checkSamplingRate(self.settings.serverInputDeviceId, self.settings.serverInputAudioSampleRate, "input")
-            outputAudioSampleRateAvailable = checkSamplingRate(self.settings.serverOutputDeviceId, self.settings.serverOutputAudioSampleRate, "output")
-            monitorAudioSampleRateAvailable = checkSamplingRate(self.settings.serverMonitorDeviceId, self.settings.serverMonitorAudioSampleRate, "output") if serverMonitorAudioDevice else True
+        # Sample Rate Check (each device is checked with the settings the real
+        # stream will use; WASAPI shared mode converts sample rates, so any
+        # requested rate is valid there unless exclusive mode is requested).
+        inputAudioSampleRateAvailable = checkSamplingRate(self.settings.serverInputDeviceId, self.settings.serverInputAudioSampleRate, "input", exclusive=wasapiExclusiveMode)
+        outputAudioSampleRateAvailable = checkSamplingRate(self.settings.serverOutputDeviceId, self.settings.serverOutputAudioSampleRate, "output", exclusive=wasapiExclusiveMode)
+        monitorAudioSampleRateAvailable = checkSamplingRate(self.settings.serverMonitorDeviceId, self.settings.serverMonitorAudioSampleRate, "output", exclusive=wasapiExclusiveMode) if serverMonitorAudioDevice else True
 
-            logger.info("Sample Rate:")
-            logger.info(f"  [Input]: {self.settings.serverInputAudioSampleRate} -> {inputAudioSampleRateAvailable}")
-            logger.info(f"  [Output]: {self.settings.serverOutputAudioSampleRate} -> {outputAudioSampleRateAvailable}")
-            if serverMonitorAudioDevice is not None:
-                logger.info(f"  [Monitor]: {self.settings.serverMonitorAudioSampleRate} -> {monitorAudioSampleRateAvailable}")
+        logger.info("Sample Rate:")
+        logger.info(f"  [Input]: {self.settings.serverInputAudioSampleRate} -> {inputAudioSampleRateAvailable}")
+        logger.info(f"  [Output]: {self.settings.serverOutputAudioSampleRate} -> {outputAudioSampleRateAvailable}")
+        if serverMonitorAudioDevice is not None:
+            logger.info(f"  [Monitor]: {self.settings.serverMonitorAudioSampleRate} -> {monitorAudioSampleRateAvailable}")
 
-            # FIXME: Ideally, there are two options:
-            # 1. UI must be provided with all sample rates and select only valid combinations of sample rates.
-            # 2. Server must pick the default device sample rate automatically so UI doesn't have to bother.
-            # This must be removed once it's done.
-            if not inputAudioSampleRateAvailable or not outputAudioSampleRateAvailable or not monitorAudioSampleRateAvailable:
-                logger.info("Checking Available Sample Rate:")
-                availableInputSampleRate = []
-                availableOutputSampleRate = []
-                availableMonitorSampleRate = []
-                for sr in SERVER_DEVICE_SAMPLE_RATES:
-                    if checkSamplingRate(self.settings.serverInputDeviceId, sr, "input"):
-                        availableInputSampleRate.append(sr)
-                    if checkSamplingRate(self.settings.serverOutputDeviceId, sr, "output"):
-                        availableOutputSampleRate.append(sr)
-                    if serverMonitorAudioDevice is not None:
-                        if checkSamplingRate(self.settings.serverMonitorDeviceId, sr, "output"):
-                            availableMonitorSampleRate.append(sr)
-                err = ERR_SAMPLE_RATE_NOT_SUPPORTED % (availableInputSampleRate, availableOutputSampleRate, availableMonitorSampleRate)
-                self.callbacks.emit_to(
-                    0,
-                    self.performance,
-                    ('ERR_SAMPLE_RATE_NOT_SUPPORTED', err)
-                )
-                logger.error(err)
-                return
+        # FIXME: Ideally, there are two options:
+        # 1. UI must be provided with all sample rates and select only valid combinations of sample rates.
+        # 2. Server must pick the default device sample rate automatically so UI doesn't have to bother.
+        # This must be removed once it's done.
+        if not inputAudioSampleRateAvailable or not outputAudioSampleRateAvailable or not monitorAudioSampleRateAvailable:
+            logger.info("Checking Available Sample Rate:")
+            availableInputSampleRate = []
+            availableOutputSampleRate = []
+            availableMonitorSampleRate = []
+            for sr in SERVER_DEVICE_SAMPLE_RATES:
+                if checkSamplingRate(self.settings.serverInputDeviceId, sr, "input", exclusive=wasapiExclusiveMode):
+                    availableInputSampleRate.append(sr)
+                if checkSamplingRate(self.settings.serverOutputDeviceId, sr, "output", exclusive=wasapiExclusiveMode):
+                    availableOutputSampleRate.append(sr)
+                if serverMonitorAudioDevice is not None:
+                    if checkSamplingRate(self.settings.serverMonitorDeviceId, sr, "output", exclusive=wasapiExclusiveMode):
+                        availableMonitorSampleRate.append(sr)
+            err = ERR_SAMPLE_RATE_NOT_SUPPORTED % (availableInputSampleRate, availableOutputSampleRate, availableMonitorSampleRate)
+            self.callbacks.emit_to(
+                0,
+                self.performance,
+                ('ERR_SAMPLE_RATE_NOT_SUPPORTED', err)
+            )
+            logger.error(err)
+            return
 
         # FIXME: In UI, block size is calculated based on 48kHz so we convert from 48kHz to input device sample rate.
         block_frame = int((self.settings.serverReadChunkSize * 128 / 48000) * self.settings.serverInputAudioSampleRate)
@@ -253,7 +299,10 @@ class ServerAudio:
                 self.run_with_monitor(block_frame, inputChannels, outputChannels, serverMonitorAudioDevice.maxOutputChannels, inputExtraSetting, outputExtraSetting, monitorExtraSetting)
             self.running = True
         except Exception as e:
-            self.callbacks.emit_to(0, self.performance, ('ERR_GENERIC_SERVER_AUDIO_ERROR', ERR_GENERIC_SERVER_AUDIO_ERROR))
+            # Surface the actual PortAudio error (f.e. "Invalid sample rate
+            # [PaErrorCode -9997]") instead of a generic message.
+            err = ('ERR_SERVER_AUDIO_START_FAILED', ERR_SERVER_AUDIO_START_FAILED % e)
+            self.callbacks.emit_to(0, self.performance, err)
             logger.exception(e)
 
     ###########################################
@@ -279,5 +328,5 @@ class ServerAudio:
                 self.start()
             else:
                 self.stop()
-        if self.running and key in { 'serverInputDeviceId', 'serverOutputDeviceId', 'serverMonitorDeviceId', 'serverReadChunkSize', 'serverAudioSampleRate', 'asioInputChannel', 'asioOutputChannel' }:
+        if self.running and key in { 'serverInputDeviceId', 'serverOutputDeviceId', 'serverMonitorDeviceId', 'serverReadChunkSize', 'serverAudioSampleRate', 'asioInputChannel', 'asioOutputChannel', 'exclusiveMode' }:
             self.start()

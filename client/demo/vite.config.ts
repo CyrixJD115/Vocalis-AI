@@ -41,8 +41,12 @@ function vcWorkletPlugin(): Plugin {
             }
             // Rewrite the webpack-specific raw import in the lib source. This
             // must happen in `load` (not `transform`) so the dev-mode dependency
-            // scanner never sees the unresolvable specifier.
-            if (id.startsWith(VC_LIB_SRC) && id.endsWith("VoiceChangerClient.ts")) {
+            // scanner never sees the unresolvable specifier. Rollup normalizes
+            // module ids to forward slashes on every OS, so normalize the
+            // Windows-style source path before comparing.
+            const idNorm = id.replace(/\\/g, "/");
+            const libSrcNorm = VC_LIB_SRC.replace(/\\/g, "/");
+            if (idNorm.startsWith(libSrcNorm) && idNorm.endsWith("VoiceChangerClient.ts")) {
                 const code = await fs.readFile(id, "utf-8");
                 const replaced = code.replace(
                     /import\s+workerjs\s+from\s+["']raw-loader!\.\.\/worklet\/dist\/index\.js["'];?/,
@@ -82,8 +86,40 @@ const API_PATHS = [
 
 const proxyTarget = process.env.VC_SERVER_URL || "http://127.0.0.1:18888";
 
+// The shared client lib lives outside this package (../lib/src), so bare
+// imports inside it (amazon-chime-sdk-js, socket.io-client, ...) do not walk
+// up to this package's node_modules. Re-anchor them here.
+const LIB_SRC_NORMALIZED = VC_LIB_SRC.replace(/\\/g, "/");
+
+function vcLibDepsResolverPlugin(): Plugin {
+    // A file inside this package; resolving from it walks ./node_modules.
+    const anchor = path.resolve(__dirname, "src/main.ts");
+    return {
+        name: "vc-lib-deps-resolver",
+        enforce: "pre",
+        async resolveId(source, importer) {
+            if (
+                !importer ||
+                source.startsWith(".") ||
+                source.startsWith("/") ||
+                source.includes("!") ||
+                source.startsWith("virtual:") ||
+                source.startsWith("\0")
+            ) {
+                return null;
+            }
+            const importerNorm = importer.replace(/\\/g, "/");
+            if (!importerNorm.startsWith(LIB_SRC_NORMALIZED)) {
+                return null;
+            }
+            const resolved = await this.resolve(source, anchor, { skipSelf: true });
+            return resolved ? resolved.id : null;
+        },
+    };
+}
+
 export default defineConfig({
-    plugins: [tailwindcss(), svelte(), vcWorkletPlugin()],
+    plugins: [tailwindcss(), svelte(), vcWorkletPlugin(), vcLibDepsResolverPlugin()],
     resolve: {
         alias: {
             "@vc-lib": VC_LIB_SRC,

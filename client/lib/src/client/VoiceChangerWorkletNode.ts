@@ -119,14 +119,9 @@ export class VoiceChangerWorkletNode extends AudioWorkletNode {
 
       this.socket.on("error", (response: any) => {
         const [error_code, error_message] = response;
-        if (error_code == 'ERR_SAMPLE_RATE_NOT_SUPPORTED') {
-          this.listener.notifyException(error_code, error_message)
-        } else {
-          this.listener.notifyException(
-            "ERR_GENERIC_VOICE_CHANGER_EXCEPTION",
-            "An error occurred during voice conversion. Check command line window for more details."
-          )
-        }
+        // Forward the server's message as-is: it contains the actionable
+        // details (device names, sample rates, PortAudio error codes).
+        this.listener.notifyException(error_code, error_message);
       });
 
       // Dedicated message for server mode
@@ -236,14 +231,7 @@ export class VoiceChangerWorkletNode extends AudioWorkletNode {
       const totalPing = Date.now() - Number(data.sendTimestamp) + data.ping;
       if (data.error) {
         const { code, message } = data.details
-        if (code == 'ERR_SAMPLE_RATE_NOT_SUPPORTED') {
-          this.listener.notifyException(code, message)
-        } else {
-          this.listener.notifyException(
-            "ERR_GENERIC_VOICE_CHANGER_EXCEPTION",
-            "An error occurred during voice conversion. Check command line window for more details."
-          )
-        }
+        this.listener.notifyException(code, message)
         return;
       }
       const audio = data.audio

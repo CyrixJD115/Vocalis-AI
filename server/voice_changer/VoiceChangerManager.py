@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import shutil
+import time
 import numpy as np
 from downloader.SampleDownloader import downloadSample, getSampleInfos
 import logging
@@ -67,6 +68,13 @@ class VoiceChangerManager(ServerAudioCallbacks):
         self.vc = VoiceChangerV2(self.settings)
         self.server_audio = ServerAudio(self, self.settings)
         self.post_processor = AudioPostProcessor(self.settings)
+
+        # Inference error state: a CUDA device-side assert poisons the CUDA
+        # context for the rest of the process lifetime, so it is latched as
+        # fatal instead of re-raising (and re-emitting) on every audio block.
+        self._fatal_inference_error: tuple[str, str] | None = None
+        self._last_inf_error: tuple[str, str] | None = None
+        self._last_inf_error_time = 0.0
 
         logger.info("Initialized.")
 
@@ -217,16 +225,29 @@ class VoiceChangerManager(ServerAudioCallbacks):
 
         return self.get_info()
 
+    ERR_FATAL_INFERENCE = (
+        "The voice conversion engine crashed on the GPU (CUDA device-side assert).\n"
+        "Audio is muted because the CUDA context can no longer be used in this process.\n"
+        "Restart Vocalis AI to recover.\n"
+        "If this repeats, set the sample rate (S.R.) to 48000 and avoid extreme FORMANT/PITCH values."
+    )
+    # Minimum interval between repeated identical (non-fatal) inference errors.
+    INFERENCE_ERROR_EMIT_INTERVAL = 2.0
+
     def change_voice(self, receivedData: AudioInOutFloat) -> tuple[AudioInOutFloat, tuple, tuple | None]:
         if self.settings.passThrough:  # パススルー
             audio, vol, perf, err = receivedData, float(np.sqrt(
                 np.square(receivedData).mean(dtype=np.float32)
             )), [0, 0, 0], None
         else:
+            if self._fatal_inference_error is not None:
+                # Latched fatal CUDA failure: output silence, no per-block spam.
+                return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], None
             try:
                 with self.device_manager.lock:
                     audio, vol, perf = self.vc.on_request(receivedData)
                 err = None
+                self._last_inf_error = None
             except VoiceChangerIsNotSelectedException as e:
                 logger.exception(e)
                 return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], ('VoiceChangerIsNotSelectedException', format_exc())
@@ -235,7 +256,18 @@ class VoiceChangerManager(ServerAudioCallbacks):
                 return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], ('PipelineNotInitializedException', format_exc())
             except Exception as e:
                 logger.exception(e)
-                return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], ('Exception', format_exc())
+                msg = format_exc()
+                if "device-side assert" in msg or "CUDA error" in msg:
+                    self._fatal_inference_error = ('ERR_INFERENCE_ENGINE_CRASHED', self.ERR_FATAL_INFERENCE)
+                    return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], self._fatal_inference_error
+                err = ('Exception', msg)
+                now = time.time()
+                if self._last_inf_error != err or now - self._last_inf_error_time >= self.INFERENCE_ERROR_EMIT_INTERVAL:
+                    self._last_inf_error = err
+                    self._last_inf_error_time = now
+                else:
+                    err = None  # same error already emitted recently; keep audio going silently
+                return np.zeros(1, dtype=np.float32), 0, [0, 0, 0], err
 
         # Audio Enhancer: applied to both converted and passthrough audio.
         # Failures fall back to the unprocessed signal instead of killing audio.

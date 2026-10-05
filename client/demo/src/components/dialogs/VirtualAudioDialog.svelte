@@ -21,7 +21,40 @@
         deviceCacheRefreshed?: boolean;
     };
 
+    type DiagCheck = {
+        id: string;
+        severity: "ok" | "info" | "warn" | "error";
+        label: string;
+        detail?: string;
+        fix?: string;
+    };
+
+    type DiagnoseResult = {
+        status: string;
+        platform?: string;
+        virtualDeviceDetected?: boolean;
+        checks?: DiagCheck[];
+        discordTips?: string[];
+        recommendation?: {
+            inputDeviceIndex: number;
+            outputDeviceIndex: number;
+            hostAPI: string;
+            sampleRate: number;
+            inputDeviceName: string;
+            outputDeviceName: string;
+        } | null;
+        currentSelection?: {
+            inputDeviceIndex: number;
+            outputDeviceIndex: number;
+            sampleRate: number;
+        };
+        message?: string;
+    };
+
     let status: VirtualAudioStatus | null = $state(null);
+    let diagnosis: DiagnoseResult | null = $state(null);
+    let diagnosing = $state(false);
+    let applying = $state(false);
     let loading = $state(false);
     let error = $state("");
 
@@ -61,9 +94,53 @@
         }
     };
 
+    const runDiagnosis = async () => {
+        diagnosing = true;
+        error = "";
+        try {
+            const res = await fetch("/virtual_audio/diagnose");
+            diagnosis = (await res.json()) as DiagnoseResult;
+        } catch (e) {
+            error = String(e);
+        } finally {
+            diagnosing = false;
+        }
+    };
+
+    const applyRecommendations = async () => {
+        applying = true;
+        error = "";
+        try {
+            const body = new FormData();
+            const res = await fetch("/virtual_audio/apply_recommendations", { method: "POST", body });
+            const data = (await res.json()) as DiagnoseResult;
+            if (data.status == "OK" && data.message) {
+                toast.info(data.message);
+            } else if (data.message) {
+                toast.error(data.message);
+            }
+            await serverState.reloadServerInfo();
+            await runDiagnosis();
+        } catch (e) {
+            error = String(e);
+        } finally {
+            applying = false;
+        }
+    };
+
+    const severityClass = (s: string) =>
+        s == "error"
+            ? "text-red-400 border-red-500/30 bg-red-500/5"
+            : s == "warn"
+              ? "text-amber-300 border-amber-500/30 bg-amber-500/5"
+              : s == "ok"
+                ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/5"
+                : "text-slate-300 border-white/10 bg-black/20";
+
     $effect(() => {
         if (guiState.showVirtualAudioDialog) {
             fetchStatus();
+            runDiagnosis();
         }
     });
 
@@ -133,6 +210,56 @@
                     <p class="mt-2 text-xs text-amber-400">
                         Server audio is running, so the device list will only refresh after audio is stopped. Stop and restart audio to see the new device.
                     </p>
+                {/if}
+            </div>
+        {/if}
+
+        {#if diagnosis && (diagnosis.checks?.length || diagnosis.recommendation)}
+            <div class="rounded-lg border border-white/10 bg-black/20 p-3">
+                <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">diagnosis</div>
+                    <div class="flex gap-2">
+                        <button class="btn" onclick={runDiagnosis} disabled={diagnosing}>{diagnosing ? "checking..." : "re-run diagnosis"}</button>
+                        {#if diagnosis.recommendation}
+                            <button class="btn btn-accent" onclick={applyRecommendations} disabled={applying || loading}>
+                                {applying ? "applying..." : "apply recommended routing"}
+                            </button>
+                        {/if}
+                    </div>
+                </div>
+
+                {#if diagnosis.recommendation}
+                    <p class="mb-2 text-xs text-slate-400">
+                        Recommended: <span class="text-slate-100">{diagnosis.recommendation.inputDeviceName}</span> &rarr;
+                        <span class="text-slate-100">{diagnosis.recommendation.outputDeviceName}</span>
+                        [{diagnosis.recommendation.hostAPI}] @ {diagnosis.recommendation.sampleRate} Hz.
+                        "Apply" selects it for you (monitor device is not touched); then press <span class="text-slate-100">start</span>.
+                    </p>
+                {/if}
+
+                <div class="flex flex-col gap-1.5">
+                    {#each diagnosis.checks || [] as check (check.id)}
+                        <div class={`rounded border px-2.5 py-1.5 text-xs leading-relaxed ${severityClass(check.severity)}`}>
+                            <div>{check.label}</div>
+                            {#if check.detail}
+                                <div class="text-slate-500">{check.detail}</div>
+                            {/if}
+                            {#if check.fix}
+                                <div class="text-slate-400">Fix: {check.fix}</div>
+                            {/if}
+                        </div>
+                    {/each}
+                </div>
+
+                {#if diagnosis.discordTips?.length}
+                    <details class="mt-2 text-xs text-slate-400">
+                        <summary class="cursor-pointer select-none text-slate-300">Discord tips (error 3002, silence, noise suppression)</summary>
+                        <ul class="ml-4 mt-1 list-disc space-y-1">
+                            {#each diagnosis.discordTips as tip}
+                                <li>{tip}</li>
+                            {/each}
+                        </ul>
+                    </details>
                 {/if}
             </div>
         {/if}

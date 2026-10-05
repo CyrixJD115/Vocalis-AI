@@ -261,6 +261,30 @@ Find and delete the mentioned files from the voice changer folder and restart th
 
 1. If you are using Mozilla Firefox ESR, there may be an issue with audio devices. Use other web browser (preferably Chrome or Chromium-based).
 
+### Virtual audio device / VB-CABLE picks up nothing (Discord error 3002)
+
+> [!TIP]
+> Use **Virtual Audio Routing** in the app (header button) and press **re-run diagnosis** - it checks all of this automatically and can apply the recommended routing with one click.
+
+Discord error **3002** means "no input detected": the app on the other side of the virtual cable is receiving **silence**. The cable itself is almost never broken - something upstream is not feeding it. Work through this list:
+
+1. **Press start.** In server AUDIO mode the audio stream only opens after pressing **start** (it turns green). If the start button shows an error toast, read it - it names the actual problem (missing device, API mismatch, sample rate).
+
+1. **Output must be the cable PLAYBACK side.** The virtual cable has two ends:
+   * **Playback side** (Vocalis writes into it): `CABLE Input (VB-Audio Virtual Cable)`, often shown as `Speakers (VB-Audio Virtual Cable)`.
+   * **Recording side** (Discord/OBS record from it): `CABLE Output (VB-Audio Virtual Cable)`.
+   Setting Vocalis' Output to `CABLE Output` is a classic mistake - that is the microphone end, nothing plays from it.
+
+1. **Input and Output must use the same audio API.** Windows cannot combine, e.g., an MME microphone with a WASAPI cable in one stream (`Illegal combination of I/O devices`). Pick both from `Windows WASAPI` (recommended) or both from `Windows DirectSound`.
+
+1. **Use S.R. = 48000.** This is the native rate of most modern devices and of VB-CABLE. Also set both cable endpoints to `2 channel, 16 bit, 48000 Hz` in the classic Sound panel (`mmsys.cpl` > device Properties > Advanced) while audio apps are closed.
+
+1. **Discord settings matter.** Set Input Device to the cable recording side explicitly (not "Default"); disable **Noise Suppression** (Krisp) and **Echo Cancellation** (Input Profile "Studio" works well); disable "Automatically determine input sensitivity". Also check Windows did not mute the cable or set its level to 0.
+
+1. **VB-CABLE driver sanity.** After installing VB-CABLE a **reboot is required**. Old drivers (pre-3.x) misbehave on Windows 11 24H2+ - install the latest Driver Pack from [vb-audio.com/Cable](https://vb-audio.com/Cable/) as administrator and reboot. If the cable's *Internal SR* is not 48000, run `tools/windows-fix-vbcable.ps1` as administrator to reset it.
+
+1. **Still nothing?** Test the cable itself: play any music into the cable playback side and watch the meter of the recording side (mmsys.cpl > Recording). If the meter moves, the cable works and the issue is in the Vocalis device selection.
+
 ### No sound after start
 
 1. Make sure you have selected correct input and output audio devices.

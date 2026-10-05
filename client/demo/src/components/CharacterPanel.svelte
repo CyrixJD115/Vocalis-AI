@@ -31,6 +31,14 @@
                 toast.warn("Select an audio output device.");
                 return;
             }
+            guiState.isConverting = true;
+            try {
+                await vcClientState.start();
+            } catch (e) {
+                guiState.isConverting = false;
+                console.error(e);
+                toast.error("Failed to start voice conversion.");
+            }
         } else {
             if (serverSetting.serverInputDeviceId == -1) {
                 toast.warn("Select an audio input device.");
@@ -40,14 +48,18 @@
                 toast.warn("Select an audio output device.");
                 return;
             }
-        }
-        guiState.isConverting = true;
-        try {
-            await vcClientState.start();
-        } catch (e) {
-            guiState.isConverting = false;
-            console.error(e);
-            toast.error("Failed to start voice conversion.");
+            guiState.isConverting = true;
+            try {
+                // Establish the socket connection so server-mode errors and
+                // volume stats are received, then tell the server to open its
+                // own audio stream (mic -> model -> output device).
+                await vcClientState.ensureClient();
+                await serverState.updateServerSettings({ ...serverSetting, serverAudioStated: 1 });
+            } catch (e) {
+                guiState.isConverting = false;
+                console.error(e);
+                toast.error("Failed to start voice conversion.");
+            }
         }
     };
 

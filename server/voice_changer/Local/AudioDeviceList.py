@@ -26,33 +26,33 @@ def dummy_callback(data: np.ndarray, frames, times, status):
     pass
 
 
-def checkSamplingRate(deviceId: int, desiredSamplingRate: int, type: ServerAudioDeviceType):
-    if type == "input":
-        try:
-            with sd.InputStream(
-                device=deviceId,
-                callback=dummy_callback,
-                dtype="float32",
-                samplerate=desiredSamplingRate,
-            ):
-                pass
-            return True
-        except Exception as e:  # NOQA
-            logger.warning(f"[checkSamplingRate] {e}")
-            return False
-    else:
-        try:
-            with sd.OutputStream(
-                device=deviceId,
-                callback=dummy_callback,
-                dtype="float32",
-                samplerate=desiredSamplingRate,
-            ):
-                pass
-            return True
-        except Exception as e:  # NOQA
-            logger.warning(f"[checkSamplingRate] {e}")
-            return False
+def checkSamplingRate(deviceId: int, desiredSamplingRate: int, type: ServerAudioDeviceType, exclusive: bool = False):
+    """Probe whether a device supports a sample rate by opening a short-lived stream.
+
+    The probe must mirror the settings the real stream in ServerAudio will use:
+    WASAPI shared mode converts sample rates automatically (any rate is valid),
+    while WASAPI exclusive mode requires the device's native rate.
+    """
+    device = sd.query_devices(deviceId)
+    hostAPI = sd.query_hostapis(device["hostapi"])["name"]
+    extra_settings = None
+    if "WASAPI" in hostAPI:
+        extra_settings = sd.WasapiSettings(exclusive=exclusive, auto_convert=not exclusive)
+
+    streamClass = sd.InputStream if type == "input" else sd.OutputStream
+    try:
+        with streamClass(
+            device=deviceId,
+            callback=dummy_callback,
+            dtype="float32",
+            samplerate=desiredSamplingRate,
+            extra_settings=extra_settings,
+        ):
+            pass
+        return True
+    except Exception as e:  # NOQA
+        logger.warning(f"[checkSamplingRate] {e}")
+        return False
 
 
 def list_audio_device():
