@@ -284,6 +284,26 @@
             monitorMode
             onDeviceChange={(v) => serverState.updateServerSettings({ ...serverSetting, serverMonitorDeviceId: v })}
         />
+        <!-- hear-self (local monitoring mute) -->
+        <div class="flex items-center gap-3 py-1">
+            <div class="control-label w-28 shrink-0 text-right">HEAR SELF</div>
+            <div class="flex flex-1 flex-wrap items-center gap-2">
+                <button
+                    class="btn h-8 text-xs font-semibold"
+                    class:btn-stop-active={serverSetting.serverMonitorMuted == 1}
+                    class:btn-start-active={serverSetting.serverMonitorMuted != 1}
+                    title="Mute = you don't hear yourself on desktop; the output device (virtual cable feeding Discord/OBS) keeps receiving the converted voice."
+                    onclick={() => serverState.updateServerSettings({ ...serverSetting, serverMonitorMuted: serverSetting.serverMonitorMuted == 1 ? 0 : 1 })}
+                >
+                    {serverSetting.serverMonitorMuted == 1 ? "muted" : "on"}
+                </button>
+                <span class="min-w-0 text-xs text-slate-500">
+                    {serverSetting.serverMonitorDeviceId == -1
+                        ? "Set Monitor to your speakers/headphones, then mute here for calls/streaming."
+                        : "Mute = silent for you, audible for the cable/apps."}
+                </span>
+            </div>
+        </div>
         <!-- server sample rate -->
         <SelectRow
             label="S.R."

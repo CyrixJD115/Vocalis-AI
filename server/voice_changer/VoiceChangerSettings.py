@@ -188,6 +188,9 @@ class VoiceChangerSettings:
     _serverInputAudioGain: float = 1.0
     _serverOutputAudioGain: float = 1.0
     _serverMonitorAudioGain: float = 1.0
+    # 1 = the monitor (local hearing) stream outputs silence while the output
+    # device (f.e. a virtual cable feeding Discord/OBS) keeps playing.
+    _serverMonitorMuted: int = 0
 
     _exclusiveMode: int = 0
     _asioInputChannel: int = -1
@@ -288,6 +291,14 @@ class VoiceChangerSettings:
     @serverMonitorAudioGain.setter
     def serverMonitorAudioGain(self, gain: str):
         self._serverMonitorAudioGain = float(gain)
+
+    @property
+    def serverMonitorMuted(self):
+        return self._serverMonitorMuted
+
+    @serverMonitorMuted.setter
+    def serverMonitorMuted(self, muted: str):
+        self._serverMonitorMuted = int(muted)
 
     @property
     def exclusiveMode(self):

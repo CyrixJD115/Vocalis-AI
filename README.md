@@ -285,6 +285,14 @@ Discord error **3002** means "no input detected": the app on the other side of t
 
 1. **Still nothing?** Test the cable itself: play any music into the cable playback side and watch the meter of the recording side (mmsys.cpl > Recording). If the meter moves, the cable works and the issue is in the Vocalis device selection.
 
+### Hearing yourself while others hear the converted voice
+
+Two independent paths decide whether *you* hear your own (converted) voice:
+
+1. **Vocalis' Monitor stream (the intended way).** In server AUDIO mode set **Monitor** to your speakers/headphones - now you hear yourself locally. Use the **HEAR SELF** toggle (below Monitor) to mute/unmute your local listening: `muted` = you hear nothing but the output device (virtual cable to Discord/OBS) keeps receiving everything; `on` = unmuted for testing. This toggle never affects what other apps receive. Do **not** mute the cable endpoint in Windows volume settings for this - that endpoint *is* the pipe and muting it silences Discord too.
+
+2. **Windows' own mic monitoring (the sneaky way).** If Monitor is `none` and you still hear your raw voice, Windows is playing the microphone back by itself: open `mmsys.cpl` > **Recording** tab > your microphone > **Listen** tab > untick **"Listen to this device"**. (Wireless mic kits can also have a hardware sidetone/app monitoring toggle - check the manufacturer's app.) This path is outside Vocalis and must be disabled in Windows.
+
 ### No sound after start
 
 1. Make sure you have selected correct input and output audio devices.

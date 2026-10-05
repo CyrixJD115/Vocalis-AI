@@ -123,6 +123,17 @@ class ServerAudio:
 
     def audio_monitor_callback(self, outdata: np.ndarray, frames, times, status):
         try:
+            if self.settings.serverMonitorMuted:
+                # Mute for the user only: keep draining the monitor queue so
+                # unmuting resumes instantly instead of replaying a backlog,
+                # while the output device (f.e. a virtual cable) keeps playing.
+                while True:
+                    try:
+                        self.monQueue.get_nowait()
+                    except Exception:  # NOQA: BLE001 queue.Empty
+                        break
+                outdata.fill(0)
+                return
             mon_wav = self.monQueue.get()
             while self.monQueue.qsize() > 0:
                 self.monQueue.get()

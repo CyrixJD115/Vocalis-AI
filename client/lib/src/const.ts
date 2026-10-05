@@ -87,6 +87,7 @@ export const ServerSettingKey = {
     serverInputAudioGain: "serverInputAudioGain",
     serverOutputAudioGain: "serverOutputAudioGain",
     serverMonitorAudioGain: "serverMonitorAudioGain",
+    serverMonitorMuted: "serverMonitorMuted",
     asioInputChannel: "asioInputChannel",
     asioOutputChannel: "asioOutputChannel",
 
@@ -161,6 +162,8 @@ export type VoiceChangerServerSetting = {
     serverInputAudioGain: number;
     serverOutputAudioGain: number;
     serverMonitorAudioGain: number;
+    /** 1 = monitor (local hearing) stream outputs silence; the output device (e.g. virtual cable) keeps playing. */
+    serverMonitorMuted: number;
     asioInputChannel: number;
     asioOutputChannel: number;
 
@@ -310,6 +313,7 @@ export const DefaultServerSetting: ServerInfo = {
     serverInputAudioGain: 1.0,
     serverOutputAudioGain: 1.0,
     serverMonitorAudioGain: 1.0,
+    serverMonitorMuted: 0,
     asioInputChannel: -1,
     asioOutputChannel: -1,
 
